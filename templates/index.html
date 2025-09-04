@@ -36,38 +36,128 @@
                     
                     <!-- Advanced Filters -->
                     <div class="border-t pt-6">
-                        <button type="button" id="toggleFilters" class="text-blue-600 hover:text-blue-800 font-medium mb-4">
-                            ▼ Advanced Filters
-                        </button>
+                        <div class="flex justify-between items-center mb-4">
+                            <button type="button" id="toggleFilters" class="text-blue-600 hover:text-blue-800 font-medium">
+                                ▼ Advanced Filters
+                            </button>
+                            <button type="button" id="clearFilters" class="text-sm text-gray-500 hover:text-gray-700 font-medium hidden">
+                                🗑️ Clear Filters
+                            </button>
+                        </div>
                         
                         <div id="filtersSection" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-                                <input type="text" name="brand" placeholder="e.g., Innova, Discraft" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                                <div class="dropdown-checklist">
+                                    <button type="button" class="dropdown-toggle w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-left bg-white">
+                                        <span class="selected-text">All Brands</span>
+                                        <span class="dropdown-arrow">▼</span>
+                                    </button>
+                                    <div class="dropdown-menu hidden">
+                                        <div class="dropdown-header">
+                                            <label class="checkbox-item">
+                                                <input type="checkbox" name="brand_all" value="" checked>
+                                                <span>All Brands</span>
+                                            </label>
+                                        </div>
+                                        <div class="dropdown-options" id="brandOptions">
+                                            <!-- Options will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Mold</label>
-                                <input type="text" name="mold" placeholder="e.g., Destroyer, Buzzz" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                                <div class="dropdown-checklist">
+                                    <button type="button" class="dropdown-toggle w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-left bg-white">
+                                        <span class="selected-text">All Molds</span>
+                                        <span class="dropdown-arrow">▼</span>
+                                    </button>
+                                    <div class="dropdown-menu hidden">
+                                        <div class="dropdown-header">
+                                            <label class="checkbox-item">
+                                                <input type="checkbox" name="mold_all" value="" checked>
+                                                <span>All Molds</span>
+                                            </label>
+                                        </div>
+                                        <div class="dropdown-options" id="moldOptions">
+                                            <!-- Options will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Plastic Type</label>
-                                <input type="text" name="plastic_type" placeholder="e.g., Champion, ESP" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                                <div class="dropdown-checklist">
+                                    <button type="button" class="dropdown-toggle w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-left bg-white">
+                                        <span class="selected-text">All Plastic Types</span>
+                                        <span class="dropdown-arrow">▼</span>
+                                    </button>
+                                    <div class="dropdown-menu hidden">
+                                        <div class="dropdown-header">
+                                            <label class="checkbox-item">
+                                                <input type="checkbox" name="plastic_type_all" value="" checked>
+                                                <span>All Plastic Types</span>
+                                            </label>
+                                        </div>
+                                        <div class="dropdown-options" id="plasticTypeOptions">
+                                            <!-- Options will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Plastic Color</label>
-                                <input type="text" name="plastic_color" placeholder="e.g., Blue, Red" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                                <div class="dropdown-checklist">
+                                    <button type="button" class="dropdown-toggle w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-left bg-white">
+                                        <span class="selected-text">All Colors</span>
+                                        <span class="dropdown-arrow">▼</span>
+                                    </button>
+                                    <div class="dropdown-menu hidden">
+                                        <div class="dropdown-header">
+                                            <label class="checkbox-item">
+                                                <input type="checkbox" name="plastic_color_all" value="" checked>
+                                                <span>All Colors</span>
+                                            </label>
+                                        </div>
+                                        <div class="dropdown-options" id="plasticColorOptions">
+                                            <!-- Options will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Stamp Foil</label>
-                                <input type="text" name="stamp_foil" placeholder="e.g., Gold, Silver" 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                                <div class="dropdown-checklist">
+                                    <button type="button" class="dropdown-toggle w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-left bg-white">
+                                        <span class="selected-text">All Foils</span>
+                                        <span class="dropdown-arrow">▼</span>
+                                    </button>
+                                    <div class="dropdown-menu hidden">
+                                        <div class="dropdown-header">
+                                            <label class="checkbox-item">
+                                                <input type="checkbox" name="stamp_foil_all" value="" checked>
+                                                <span>All Foils</span>
+                                            </label>
+                                        </div>
+                                        <div class="dropdown-options" id="stampFoilOptions">
+                                            <!-- Options will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Weight Range (g)</label>
+                                <div class="range-visualization mb-2">
+                                    <div class="range-bar">
+                                        <div class="range-track"></div>
+                                        <div class="range-fill" id="weightRangeFill"></div>
+                                    </div>
+                                    <div class="range-labels flex justify-between text-xs text-gray-500">
+                                        <span id="weightMinLabel">150g</span>
+                                        <span id="weightMaxLabel">180g</span>
+                                    </div>
+                                </div>
                                 <div class="flex gap-2">
                                     <input type="number" name="weight_min" placeholder="Min" 
                                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
@@ -76,7 +166,61 @@
                                 </div>
                             </div>
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Flatness Range</label>
+                                <div class="slider-container mb-2">
+                                    <div class="range-slider-wrapper">
+                                        <input type="range" name="flatness_slider_min" min="1" max="10" step="0.1" value="1" class="range-slider range-slider-min">
+                                        <input type="range" name="flatness_slider_max" min="1" max="10" step="0.1" value="10" class="range-slider range-slider-max">
+                                        <div class="slider-track">
+                                            <div class="slider-range" id="flatnessSliderRange"></div>
+                                        </div>
+                                    </div>
+                                    <div class="slider-labels flex justify-between text-xs text-gray-500 mb-2">
+                                        <span>Flatter (1)</span>
+                                        <span>Domey (10)</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <input type="number" name="flatness_min" placeholder="Min" step="0.1"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                                    <input type="number" name="flatness_max" placeholder="Max" step="0.1"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Stiffness Range</label>
+                                <div class="slider-container mb-2">
+                                    <div class="range-slider-wrapper">
+                                        <input type="range" name="stiffness_slider_min" min="1" max="10" step="0.1" value="1" class="range-slider range-slider-min">
+                                        <input type="range" name="stiffness_slider_max" min="1" max="10" step="0.1" value="10" class="range-slider range-slider-max">
+                                        <div class="slider-track">
+                                            <div class="slider-range" id="stiffnessSliderRange"></div>
+                                        </div>
+                                    </div>
+                                    <div class="slider-labels flex justify-between text-xs text-gray-500 mb-2">
+                                        <span>Softer (1)</span>
+                                        <span>Stiffer (10)</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <input type="number" name="stiffness_min" placeholder="Min" step="0.1"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                                    <input type="number" name="stiffness_max" placeholder="Max" step="0.1"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Price Range ($)</label>
+                                <div class="range-visualization mb-2">
+                                    <div class="range-bar">
+                                        <div class="range-track"></div>
+                                        <div class="range-fill" id="priceRangeFill"></div>
+                                    </div>
+                                    <div class="range-labels flex justify-between text-xs text-gray-500">
+                                        <span id="priceMinLabel">$10</span>
+                                        <span id="priceMaxLabel">$50</span>
+                                    </div>
+                                </div>
                                 <div class="flex gap-2">
                                     <input type="number" name="price_min" placeholder="Min" step="0.01"
                                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
@@ -84,6 +228,11 @@
                                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
                                 </div>
                             </div>
+                        </div>
+                        
+                        <!-- Filter Status Indicator -->
+                        <div id="filterStatus" class="hidden mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                            <span id="filterStatusText">Filters applied</span>
                         </div>
                     </div>
                 </form>
@@ -118,6 +267,12 @@
                                     </button>
                                 </div>
                             </div>
+                            
+                            <!-- Export Button -->
+                            <button id="exportResults" class="bg-green-500 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-600 transition-colors hidden">
+                                📥 Export CSV
+                            </button>
+                            
                             <div id="resultsInfo" class="text-sm text-gray-600"></div>
                         </div>
                     </div>

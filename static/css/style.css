@@ -82,3 +82,448 @@ body {
     align-items: center;
     justify-content: center;
 }
+
+/* Filter styles */
+#filterStatus {
+    transition: all 0.3s ease-in-out;
+    animation: slideDown 0.3s ease-out;
+}
+
+#filterStatus.hidden {
+    animation: slideUp 0.3s ease-in;
+}
+
+@keyframes slideDown {
+    from { 
+        opacity: 0; 
+        transform: translateY(-10px);
+        max-height: 0;
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0);
+        max-height: 100px;
+    }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 1; 
+        transform: translateY(0);
+        max-height: 100px;
+    }
+    to { 
+        opacity: 0; 
+        transform: translateY(-10px);
+        max-height: 0;
+    }
+}
+
+/* Clear filters button */
+#clearFilters {
+    transition: all 0.2s ease-in-out;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+}
+
+#clearFilters:hover {
+    background-color: #f3f4f6;
+    transform: scale(1.05);
+}
+
+/* Filter input focus states */
+#filtersSection input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Tooltip icon styles */
+#filtersSection label span[title] {
+    cursor: help;
+    opacity: 0.7;
+    transition: opacity 0.2s ease-in-out;
+}
+
+#filtersSection label span[title]:hover {
+    opacity: 1;
+}
+
+/* Range filter input groups */
+#filtersSection .flex.gap-2 {
+    align-items: center;
+}
+
+#filtersSection input[type="number"] {
+    text-align: center;
+}
+
+#filtersSection input[type="number"]::-webkit-inner-spin-button,
+#filtersSection input[type="number"]::-webkit-outer-spin-button {
+    opacity: 1;
+}
+
+/* Range Visualization Bars */
+.range-visualization {
+    margin-bottom: 0.5rem;
+}
+
+.range-bar {
+    position: relative;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+}
+
+.range-track {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: #e5e7eb;
+    border-radius: 4px;
+}
+
+.range-fill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+}
+
+.range-labels {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+/* Dual Range Sliders */
+.slider-container {
+    margin-bottom: 0.5rem;
+}
+
+.range-slider-wrapper {
+    position: relative;
+    height: 40px;
+    display: flex;
+    align-items: center;
+}
+
+.range-slider {
+    position: absolute;
+    width: 100%;
+    height: 6px;
+    background: transparent;
+    pointer-events: none;
+    appearance: none;
+    z-index: 3;
+}
+
+.range-slider::-webkit-slider-thumb {
+    appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    pointer-events: auto;
+    transition: all 0.2s ease-in-out;
+}
+
+.range-slider::-webkit-slider-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+}
+
+.range-slider::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    pointer-events: auto;
+}
+
+.range-slider::-moz-range-track {
+    background: transparent;
+    border: none;
+}
+
+.slider-track {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    transform: translateY(-50%);
+    z-index: 1;
+}
+
+.slider-range {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 3px;
+    transition: all 0.2s ease-in-out;
+    z-index: 2;
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+}
+
+/* Enhanced input styling */
+#filtersSection input[type="number"]:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Select element styles */
+#filtersSection select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+    appearance: none;
+}
+
+#filtersSection select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%233b82f6' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+#filtersSection select:hover {
+    border-color: #9ca3af;
+}
+
+/* Multiple select specific styles */
+#filtersSection select[multiple] {
+    background-image: none;
+    padding-right: 0.75rem;
+    min-height: 120px;
+    max-height: 200px;
+}
+
+#filtersSection select[multiple] option {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    margin: 0.125rem 0;
+    cursor: pointer;
+}
+
+#filtersSection select[multiple] option:hover {
+    background-color: #f3f4f6;
+}
+
+#filtersSection select[multiple] option:checked {
+    background-color: #3b82f6;
+    color: white;
+}
+
+#filtersSection select[multiple] option:checked:hover {
+    background-color: #2563eb;
+}
+
+/* Checkbox List Styles */
+.checkbox-list-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    background: white;
+    padding: 0.5rem;
+}
+
+.checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.checkbox-item:hover {
+    background-color: #f3f4f6;
+}
+
+.checkbox-item input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    accent-color: #3b82f6;
+    cursor: pointer;
+}
+
+.checkbox-item label {
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #374151;
+    flex: 1;
+    user-select: none;
+}
+
+.checkbox-item input[type="checkbox"]:checked + label {
+    color: #1f2937;
+    font-weight: 500;
+}
+
+/* Dropdown Checklist Styles */
+.dropdown-checklist {
+    position: relative;
+    z-index: 10;
+}
+
+.dropdown-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.dropdown-toggle:hover {
+    border-color: #9ca3af;
+}
+
+.dropdown-toggle:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.dropdown-arrow {
+    transition: transform 0.2s ease-in-out;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.dropdown-checklist.open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 20;
+}
+
+.dropdown-header {
+    padding: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.dropdown-header .checkbox-item {
+    margin: 0;
+    padding: 0;
+}
+
+.dropdown-options {
+    padding: 0.5rem;
+}
+
+.dropdown-options .checkbox-item {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    margin: 0.125rem 0;
+}
+
+.dropdown-options .checkbox-item:hover {
+    background-color: #f3f4f6;
+}
+
+.dropdown-options .checkbox-item input[type="checkbox"]:checked + span {
+    color: #1f2937;
+    font-weight: 500;
+}
+
+/* Disabled checkbox item styles */
+.dropdown-options .checkbox-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f9fafb;
+}
+
+.dropdown-options .checkbox-item.disabled:hover {
+    background-color: #f9fafb;
+}
+
+.dropdown-options .checkbox-item.disabled input[type="checkbox"] {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.dropdown-options .checkbox-item.disabled .disabled-text {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* Scrollbar styling for dropdown menus */
+.dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Help text styling */
+#filtersSection .text-xs.text-gray-500 {
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
+/* Filter section animations */
+#filtersSection {
+    transition: all 0.3s ease-in-out;
+}
+
+#filtersSection.hidden {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+
+#filtersSection:not(.hidden) {
+    max-height: 1000px;
+    opacity: 1;
+}
