@@ -18,7 +18,7 @@ class Disc(BaseModel):
     plastic_type: str
     
     # Physical properties from OTB Discs
-    color: Optional[str] = None
+    plastic_color: Optional[str] = None  # Renamed from color
     rim_color: Optional[str] = None
     stamp_foil: Optional[str] = None
     weight: Optional[float] = Field(None, description="Weight in grams")
@@ -57,7 +57,7 @@ class DiscFilter(BaseModel):
     brand: Optional[Union[str, List[str]]] = None
     mold: Optional[Union[str, List[str]]] = None
     plastic_type: Optional[Union[str, List[str]]] = None
-    color: Optional[Union[str, List[str]]] = None
+    plastic_color: Optional[Union[str, List[str]]] = None  # Renamed from color
     rim_color: Optional[Union[str, List[str]]] = None
     stamp_foil: Optional[Union[str, List[str]]] = None
     

@@ -162,12 +162,16 @@ class OTBDiscsScraper:
                         break
             
             if variants_table:
+                # Get the headers for column mapping
+                header_row = variants_table.find('tr')
+                headers = [th.get_text(strip=True).lower() for th in header_row.find_all(['th', 'td'])]
+                
                 rows = variants_table.find_all('tr')[1:]  # Skip header row
                 for row in rows:
                     cells = row.find_all('td')
-                    if len(cells) >= 10:  # Make sure we have enough columns
+                    if len(cells) >= 8:  # Make sure we have enough columns for essential data
                         try:
-                            disc = self._parse_table_row(cells, brand, mold, plastic_type, url)
+                            disc = self._parse_table_row(cells, headers, brand, mold, plastic_type, url)
                             if disc:
                                 discs.append(disc)
                         except Exception as e:
@@ -183,12 +187,13 @@ class OTBDiscsScraper:
             logger.error(f"Error parsing product page {url}: {e}")
             return []
     
-    def _parse_table_row(self, cells, brand: str, mold: str, plastic_type: str, product_url: str) -> Optional[Disc]:
+    def _parse_table_row(self, cells, headers: List[str], brand: str, mold: str, plastic_type: str, product_url: str) -> Optional[Disc]:
         """
-        Parse a table row from OTB Discs product page into a Disc object
+        Parse a table row from OTB Discs product page into a Disc object using header-based column mapping
         
         Args:
             cells: List of table cell elements
+            headers: List of column headers (lowercase)
             brand: Brand name
             mold: Mold name  
             plastic_type: Plastic type
@@ -198,64 +203,101 @@ class OTBDiscsScraper:
             Disc object or None if parsing fails
         """
         try:
-            # Based on the actual OTB Discs table structure from HTML analysis:
-            # 0=Thumbnail, 1=Color, 2=Plastic-Gateway, 3=Stamp Foil, 4=Weight, 5=Scaled Weight, 
-            # 6=Flatness, 7=Stiffness, 8=Price, 9=Stock, 10=Quantity, 11=Add to cart
+            # Create column mapping based on headers
+            column_map = {}
+            for i, header in enumerate(headers):
+                if 'thumbnail' in header or 'image' in header:
+                    column_map['thumbnail'] = i
+                elif 'color' in header and 'stamp' not in header and 'rim' not in header:
+                    column_map['color'] = i
+                elif 'stamp' in header and 'foil' in header:
+                    column_map['stamp_foil'] = i
+                elif 'rim' in header and 'color' in header:
+                    column_map['rim_color'] = i
+                elif 'plastic' in header and 'gateway' in header:
+                    column_map['plastic_gateway'] = i
+                elif 'weight' in header and 'scaled' not in header:
+                    column_map['weight'] = i
+                elif 'scaled' in header and 'weight' in header:
+                    column_map['scaled_weight'] = i
+                elif 'flatness' in header:
+                    column_map['flatness'] = i
+                elif 'stiffness' in header:
+                    column_map['stiffness'] = i
+                elif 'price' in header:
+                    column_map['price'] = i
+                elif 'stock' in header:
+                    column_map['stock'] = i
+                elif 'quantity' in header:
+                    column_map['quantity'] = i
             
-            color = cells[1].get_text(strip=True) if len(cells) > 1 else None
+            # Log column mapping for debugging (only for first few rows)
+            if len(cells) > 0 and cells[0].get_text(strip=True) == '':  # First row check
+                logger.debug(f"Column mapping for {mold}: {column_map}")
             
-            # Get plastic type from column 2 (Plastic-Gateway)
-            plastic_from_table = cells[2].get_text(strip=True) if len(cells) > 2 else None
-            if plastic_from_table and plastic_from_table.strip():
-                plastic_type = plastic_from_table
+            # Extract values using column mapping
+            plastic_color = cells[column_map.get('color', 1)].get_text(strip=True) if 'color' in column_map and len(cells) > column_map['color'] else None
             
-            stamp_foil = cells[3].get_text(strip=True) if len(cells) > 3 else None
-            rim_color = None  # Not in this table format
+            # Log missing columns for debugging
+            missing_columns = []
+            for col in ['stiffness', 'price']:
+                if col not in column_map:
+                    missing_columns.append(col)
+            if missing_columns:
+                logger.warning(f"Missing columns for {mold}: {missing_columns}")
             
-            # Parse weight from column 4 (Weight: "174g")
+            # Handle stamp foil
+            stamp_foil = None
+            if 'stamp_foil' in column_map and len(cells) > column_map['stamp_foil']:
+                stamp_foil = cells[column_map['stamp_foil']].get_text(strip=True)
+            
+            # Handle rim color
+            rim_color = cells[column_map.get('rim_color', 0)].get_text(strip=True) if 'rim_color' in column_map and len(cells) > column_map['rim_color'] else None
+            
+            # Parse weight
             weight = None
-            if len(cells) > 4:
-                weight_text = cells[4].get_text(strip=True)
+            if 'weight' in column_map and len(cells) > column_map['weight']:
+                weight_text = cells[column_map['weight']].get_text(strip=True)
                 weight_match = re.search(r'(\d+)', weight_text)
                 if weight_match:
                     weight = float(weight_match.group(1))
             
-            # Parse scaled weight from column 5 (Scaled Weight: "174.3g")
+            # Parse scaled weight
             scaled_weight = None
-            if len(cells) > 5:
-                scaled_weight_text = cells[5].get_text(strip=True)
+            if 'scaled_weight' in column_map and len(cells) > column_map['scaled_weight']:
+                scaled_weight_text = cells[column_map['scaled_weight']].get_text(strip=True)
                 scaled_match = re.search(r'(\d+(?:\.\d+)?)', scaled_weight_text)
                 if scaled_match:
                     scaled_weight = float(scaled_match.group(1))
             
-            # Parse flatness from column 6 (Flatness: "(3) - Somewhat Flat")
+            # Parse flatness
             flatness = None
-            if len(cells) > 6:
-                flatness_text = cells[6].get_text(strip=True)
+            if 'flatness' in column_map and len(cells) > column_map['flatness']:
+                flatness_text = cells[column_map['flatness']].get_text(strip=True)
                 flatness_match = re.search(r'\((\d+)\)', flatness_text)
                 if flatness_match:
                     flatness = float(flatness_match.group(1))
             
-            # Parse stiffness from column 7 (Stiffness: "(3) - Somewhat Gummy")
+            # Parse stiffness
             stiffness = None
-            if len(cells) > 7:
-                stiffness_text = cells[7].get_text(strip=True)
+            if 'stiffness' in column_map and len(cells) > column_map['stiffness']:
+                stiffness_text = cells[column_map['stiffness']].get_text(strip=True)
                 stiffness_match = re.search(r'\((\d+)\)', stiffness_text)
                 if stiffness_match:
                     stiffness = float(stiffness_match.group(1))
             
-            # Parse price from column 8 (Price: "$17.99")
+            # Parse price
             price = None
-            if len(cells) > 8:
-                price_text = cells[8].get_text(strip=True)
+            if 'price' in column_map and len(cells) > column_map['price']:
+                price_text = cells[column_map['price']].get_text(strip=True)
                 price_match = re.search(r'\$(\d+(?:\.\d+)?)', price_text)
                 if price_match:
                     price = Decimal(price_match.group(1))
             
-            # Parse stock status from column 9 (Stock: "Just 1 left!")
+            # Parse stock status
             stock_status = StockStatus.UNKNOWN
-            if len(cells) > 9:
-                stock_text = cells[9].get_text(strip=True).lower()
+            if 'stock' in column_map and len(cells) > column_map['stock']:
+                stock_text = cells[column_map['stock']].get_text(strip=True).lower()
                 if 'just 1 left' in stock_text or 'in stock' in stock_text:
                     stock_status = StockStatus.IN_STOCK
                 elif 'out of stock' in stock_text:
@@ -265,8 +307,8 @@ class OTBDiscsScraper:
             
             # Get image URL from thumbnail cell
             image_url = None
-            if len(cells) > 0:
-                img_element = cells[0].find('img')
+            if 'thumbnail' in column_map and len(cells) > column_map['thumbnail']:
+                img_element = cells[column_map['thumbnail']].find('img')
                 if img_element and img_element.get('src'):
                     image_url = img_element['src']
             
@@ -274,7 +316,7 @@ class OTBDiscsScraper:
                 brand=brand,
                 mold=mold,
                 plastic_type=plastic_type,
-                color=color,
+                plastic_color=plastic_color,
                 rim_color=rim_color,
                 stamp_foil=stamp_foil,
                 weight=weight,

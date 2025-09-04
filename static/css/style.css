@@ -39,7 +39,7 @@ body {
     @apply text-red-600 bg-red-50 px-3 py-1 rounded-full text-sm font-medium;
 }
 
-/* View Toggle Buttons */
+/* View toggle buttons */
 .view-toggle-btn {
     color: #6b7280;
     background-color: transparent;
@@ -55,12 +55,30 @@ body {
     color: #374151;
 }
 
-/* Table styling improvements */
-.table-row-hover:hover {
+/* Table row hover effect */
+.table-row:hover {
     background-color: #f9fafb;
 }
 
-/* Responsive table scrolling */
-.table-container {
-    min-height: 300px;
+/* Disc image styles */
+.disc-image {
+    transition: transform 0.2s ease-in-out;
+}
+
+.disc-image:hover {
+    transform: scale(1.1);
+}
+
+/* Card image container */
+.card-image-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.5rem;
+}
+
+/* Table image container */
+.table-image-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

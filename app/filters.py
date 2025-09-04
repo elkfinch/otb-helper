@@ -59,7 +59,7 @@ class DiscFilterService:
             return False
         if not DiscFilterService._check_text_filter(disc.plastic_type, filters.plastic_type):
             return False
-        if not DiscFilterService._check_text_filter(disc.color, filters.color):
+        if not DiscFilterService._check_text_filter(disc.plastic_color, filters.plastic_color):
             return False
         if not DiscFilterService._check_text_filter(disc.rim_color, filters.rim_color):
             return False

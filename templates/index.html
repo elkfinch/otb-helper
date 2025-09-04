@@ -22,7 +22,7 @@
                 <form id="searchForm" class="space-y-6">
                     <div class="flex gap-4">
                         <div class="flex-1">
-                            <label for="productName" class="block text-sm font-medium text-gray-700 mb-2">Disc Name</label>
+                            <label for="productName" class="block text-sm font-medium text-gray-700 mb-2">Mold Name</label>
                             <input type="text" id="productName" name="productName" 
                                    placeholder="e.g., Destroyer, Buzzz, Firebird" 
                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -40,7 +40,7 @@
                             ▼ Advanced Filters
                         </button>
                         
-                        <div id="filtersSection" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div id="filtersSection" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Brand</label>
                                 <input type="text" name="brand" placeholder="e.g., Innova, Discraft" 
@@ -57,8 +57,13 @@
                                        class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Color</label>
-                                <input type="text" name="color" placeholder="e.g., Blue, Red" 
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Plastic Color</label>
+                                <input type="text" name="plastic_color" placeholder="e.g., Blue, Red" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Stamp Foil</label>
+                                <input type="text" name="stamp_foil" placeholder="e.g., Gold, Silver" 
                                        class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
                             </div>
                             <div>
@@ -91,7 +96,7 @@
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span class="text-blue-700">Searching for discs and fetching detailed information... This may take up to 30 seconds.</span>
+                    <span class="text-blue-700">Searching for discs and fetching detailed information... This may take a few seconds.</span>
                 </div>
             </div>
             
@@ -100,10 +105,49 @@
                 <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-xl font-semibold text-gray-800">Search Results</h3>
-                        <div id="resultsInfo" class="text-sm text-gray-600"></div>
+                        <div class="flex items-center gap-4">
+                            <!-- View Toggle -->
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600">View:</span>
+                                <div class="flex bg-gray-100 rounded-lg p-1">
+                                    <button id="cardViewBtn" class="view-toggle-btn active px-3 py-1 rounded text-sm font-medium transition-colors">
+                                        📊 Cards
+                                    </button>
+                                    <button id="tableViewBtn" class="view-toggle-btn px-3 py-1 rounded text-sm font-medium transition-colors">
+                                        📋 Table
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="resultsInfo" class="text-sm text-gray-600"></div>
+                        </div>
                     </div>
-                    <div id="resultsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <!-- Results will be populated here -->
+                    
+                    <!-- Card View Container -->
+                    <div id="cardContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <!-- Card results will be populated here -->
+                    </div>
+                    
+                    <!-- Table View Container -->
+                    <div id="tableContainer" class="hidden overflow-x-auto">
+                        <table class="min-w-full table-auto">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plastic Type</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stamp Foil</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plastic Color</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Flatness</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stiffness</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Table results will be populated here -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

@@ -42,7 +42,7 @@ async function searchDiscs(formData) {
         
         // Add filters if they have values
         const filterFields = [
-            'brand', 'mold', 'plastic_type', 'color', 'rim_color', 'stamp_foil',
+            'brand', 'mold', 'plastic_type', 'plastic_color', 'rim_color', 'stamp_foil',
             'weight_min', 'weight_max', 'scaled_weight_min', 'scaled_weight_max',
             'flatness_min', 'flatness_max', 'stiffness_min', 'stiffness_max',
             'price_min', 'price_max'
@@ -106,35 +106,95 @@ async function searchDiscs(formData) {
 }
 
 function displaySearchResults(data) {
-    const searchResults = document.getElementById('searchResults');
-    const resultsContainer = document.getElementById('resultsContainer');
-    const resultsInfo = document.getElementById('resultsInfo');
+    console.log('🔍 displaySearchResults called with data:', data);
     
-    // Update results info
-    resultsInfo.textContent = `Found ${data.total_found} discs in ${data.search_time_ms}ms`;
-    
-    // Clear previous results
-    resultsContainer.innerHTML = '';
-    
-    if (data.results.length === 0) {
-        resultsContainer.innerHTML = `
-            <div class="col-span-full text-center py-8 text-gray-500">
-                <div class="text-4xl mb-4">🔍</div>
-                <p class="text-lg">No discs found for "${data.query}"</p>
-                <p class="text-sm">Try adjusting your search terms or filters</p>
-            </div>
-        `;
-    } else {
-        // Display each disc
-        data.results.forEach(disc => {
-            const discCard = createDiscCard(disc);
-            resultsContainer.appendChild(discCard);
+    try {
+        console.log('📋 Looking for DOM elements...');
+        const searchResults = document.getElementById('searchResults');
+        const cardContainer = document.getElementById('cardContainer');
+        const tableContainer = document.getElementById('tableContainer');
+        const tableBody = document.getElementById('tableBody');
+        const resultsInfo = document.getElementById('resultsInfo');
+        
+        console.log('📋 DOM element check:', {
+            searchResults: !!searchResults,
+            cardContainer: !!cardContainer,
+            tableContainer: !!tableContainer,
+            tableBody: !!tableBody,
+            resultsInfo: !!resultsInfo
         });
+        
+        // Check if all required elements exist
+        if (!searchResults || !cardContainer || !tableContainer || !tableBody || !resultsInfo) {
+            console.error('❌ Missing required DOM elements for search results');
+            console.error('Missing elements:', {
+                searchResults: !searchResults ? 'MISSING' : 'found',
+                cardContainer: !cardContainer ? 'MISSING' : 'found',
+                tableContainer: !tableContainer ? 'MISSING' : 'found',
+                tableBody: !tableBody ? 'MISSING' : 'found',
+                resultsInfo: !resultsInfo ? 'MISSING' : 'found'
+            });
+            showNotification('Display error: Missing page elements. Please refresh the page.', 'error');
+            return;
+        }
+        
+        console.log('✅ All DOM elements found, proceeding...');
+        
+        // Store data globally for view switching
+        window.currentSearchData = data;
+        console.log('💾 Stored search data globally');
+        
+        // Update results info
+        console.log('📊 Updating results info...');
+        resultsInfo.textContent = `Found ${data.total_found} discs in ${data.search_time_ms}ms`;
+        console.log('✅ Results info updated');
+        
+        // Clear previous results
+        console.log('🧹 Clearing previous results...');
+        cardContainer.innerHTML = '';
+        tableBody.innerHTML = '';
+        console.log('✅ Previous results cleared');
+        
+        if (data.results.length === 0) {
+            console.log('📭 No results found, showing empty state');
+            cardContainer.innerHTML = `
+                <div class="col-span-full text-center py-8 text-gray-500">
+                    <div class="text-4xl mb-4">🔍</div>
+                    <p class="text-lg">No discs found for "${data.query}"</p>
+                    <p class="text-sm">Try adjusting your search terms or filters</p>
+                </div>
+            `;
+        } else {
+            console.log(`📦 Processing ${data.results.length} results...`);
+            // Populate both views
+            try {
+                console.log('🃏 Calling displayCardsView...');
+                displayCardsView(data.results);
+                console.log('✅ Cards view populated');
+                
+                console.log('📋 Calling displayTableView...');
+                displayTableView(data.results);
+                console.log('✅ Table view populated');
+            } catch (error) {
+                console.error('❌ Error in view population:', error);
+                console.error('Error stack:', error.stack);
+                showNotification('Error displaying search results. Please try again.', 'error');
+                return;
+            }
+        }
+        
+        // Show results section
+        console.log('👁️ Showing results section...');
+        searchResults.classList.remove('hidden');
+        searchResults.scrollIntoView({ behavior: 'smooth' });
+        console.log('✅ displaySearchResults completed successfully');
+        
+    } catch (error) {
+        console.error('💥 Fatal error in displaySearchResults:', error);
+        console.error('Error stack:', error.stack);
+        console.error('Data received:', data);
+        showNotification('Critical error displaying results. Please refresh and try again.', 'error');
     }
-    
-    // Show results section
-    searchResults.classList.remove('hidden');
-    searchResults.scrollIntoView({ behavior: 'smooth' });
 }
 
 function createDiscCard(disc) {
@@ -147,17 +207,25 @@ function createDiscCard(disc) {
     const stockText = disc.stock === 'in_stock' ? '✅ In Stock' : 
                      disc.stock === 'out_of_stock' ? '❌ Out of Stock' : '❓ Unknown';
     
+    // Create image element with fallback
+    const imageHtml = disc.image_url ? 
+        `<div class="card-image-container mb-3">
+            <img src="${disc.image_url}" alt="${disc.mold} - ${disc.plastic_type}" class="w-full h-32 object-contain rounded bg-gray-50 disc-image" onerror="this.style.display='none'">
+        </div>` :
+        `<div class="w-full h-32 bg-gray-100 rounded mb-3 flex items-center justify-center text-gray-400 text-sm">No Image</div>`;
+    
     card.innerHTML = `
+        ${imageHtml}
         <div class="flex justify-between items-start mb-3">
-            <h4 class="font-semibold text-gray-800 text-lg">${disc.brand} ${disc.mold}</h4>
+            <h4 class="font-semibold text-gray-800 text-lg">${disc.plastic_type || 'N/A'}</h4>
             ${disc.price ? `<span class="text-lg font-bold text-green-600">$${disc.price}</span>` : ''}
         </div>
         
         <div class="space-y-2 text-sm">
             <div class="grid grid-cols-2 gap-2">
-                <div><span class="font-medium">Plastic:</span> ${disc.plastic_type || 'N/A'}</div>
+                <div><span class="font-medium">Stamp Foil:</span> ${disc.stamp_foil || 'N/A'}</div>
                 <div><span class="font-medium">Weight:</span> ${disc.weight ? disc.weight + 'g' : 'N/A'}</div>
-                ${disc.color ? `<div><span class="font-medium">Color:</span> ${disc.color}</div>` : ''}
+                ${disc.plastic_color ? `<div><span class="font-medium">Plastic Color:</span> ${disc.plastic_color}</div>` : ''}
                 ${disc.rim_color ? `<div><span class="font-medium">Rim:</span> ${disc.rim_color}</div>` : ''}
                 ${disc.flatness ? `<div><span class="font-medium">Flatness:</span> ${disc.flatness}</div>` : ''}
                 ${disc.stiffness ? `<div><span class="font-medium">Stiffness:</span> ${disc.stiffness}</div>` : ''}
@@ -171,6 +239,117 @@ function createDiscCard(disc) {
     `;
     
     return card;
+}
+
+function displayCardsView(discs) {
+    console.log('🃏 displayCardsView called with', discs.length, 'discs');
+    
+    const cardContainer = document.getElementById('cardContainer');
+    if (!cardContainer) {
+        console.error('❌ cardContainer element not found');
+        return;
+    }
+    
+    console.log('✅ cardContainer found, clearing...');
+    cardContainer.innerHTML = '';
+    
+    console.log('📝 Creating cards for each disc...');
+    discs.forEach((disc, index) => {
+        try {
+            console.log(`🃏 Creating card ${index + 1}/${discs.length} for:`, disc.mold);
+            const discCard = createDiscCard(disc);
+            cardContainer.appendChild(discCard);
+        } catch (error) {
+            console.error(`❌ Error creating disc card ${index + 1}:`, error, disc);
+        }
+    });
+    
+    console.log('✅ displayCardsView completed');
+}
+
+function displayTableView(discs) {
+    console.log('📋 displayTableView called with', discs.length, 'discs');
+    
+    const tableBody = document.getElementById('tableBody');
+    if (!tableBody) {
+        console.error('❌ tableBody element not found');
+        return;
+    }
+    
+    console.log('✅ tableBody found, clearing...');
+    tableBody.innerHTML = '';
+    
+    console.log('📝 Creating table rows for each disc...');
+    discs.forEach((disc, index) => {
+        try {
+            console.log(`📋 Creating row ${index + 1}/${discs.length} for:`, disc.mold);
+            const row = createTableRow(disc);
+            tableBody.appendChild(row);
+        } catch (error) {
+            console.error(`❌ Error creating table row ${index + 1}:`, error, disc);
+        }
+    });
+    
+    console.log('✅ displayTableView completed');
+}
+
+function createTableRow(disc) {
+    const row = document.createElement('tr');
+    row.className = 'table-row hover:bg-gray-50';
+    
+    const stockClass = disc.stock === 'in_stock' ? 'text-green-600 bg-green-50' :
+                      disc.stock === 'out_of_stock' ? 'text-red-600 bg-red-50' : 'text-gray-600 bg-gray-50';
+    const stockText = disc.stock === 'in_stock' ? 'In Stock' :
+                     disc.stock === 'out_of_stock' ? 'Out of Stock' : 'Unknown';
+    
+    // Create image element with fallback
+    const imageHtml = disc.image_url ? 
+        `<div class="table-image-container">
+            <img src="${disc.image_url}" alt="${disc.mold} - ${disc.plastic_type}" class="w-12 h-12 object-contain rounded bg-gray-50 disc-image" onerror="this.style.display='none'">
+        </div>` :
+        `<div class="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-xs">No Image</div>`;
+    
+    row.innerHTML = `
+        <td class="px-4 py-4 whitespace-nowrap">
+            ${imageHtml}
+        </td>
+        <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${disc.plastic_type || 'N/A'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">${disc.stamp_foil || 'N/A'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">${disc.plastic_color || 'N/A'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">${disc.weight ? disc.weight + 'g' : 'N/A'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">${disc.flatness || 'N/A'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">${disc.stiffness || 'N/A'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-green-600">${disc.price ? '$' + disc.price : 'N/A'}</td>
+        <td class="px-4 py-4 whitespace-nowrap">
+            <span class="px-2 py-1 text-xs font-medium rounded-full ${stockClass}">${stockText}</span>
+        </td>
+        <td class="px-4 py-4 whitespace-nowrap text-sm">
+            ${disc.product_url ? `<a href="${disc.product_url}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">View →</a>` : 'N/A'}
+        </td>
+    `;
+    
+    return row;
+}
+
+function switchView(viewType) {
+    const cardContainer = document.getElementById('cardContainer');
+    const tableContainer = document.getElementById('tableContainer');
+    const cardViewBtn = document.getElementById('cardViewBtn');
+    const tableViewBtn = document.getElementById('tableViewBtn');
+    
+    if (viewType === 'cards') {
+        cardContainer.classList.remove('hidden');
+        tableContainer.classList.add('hidden');
+        cardViewBtn.classList.add('active');
+        tableViewBtn.classList.remove('active');
+        localStorage.setItem('discViewPreference', 'cards');
+    } else if (viewType === 'table') {
+        cardContainer.classList.add('hidden');
+        tableContainer.classList.remove('hidden');
+        cardViewBtn.classList.remove('active');
+        tableViewBtn.classList.add('active');
+        localStorage.setItem('discViewPreference', 'table');
+    }
 }
 
 // Utility functions
@@ -235,5 +414,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 toggleFilters.textContent = '▼ Advanced Filters';
             }
         });
+    }
+    
+    // Handle view toggle buttons
+    const cardViewBtn = document.getElementById('cardViewBtn');
+    const tableViewBtn = document.getElementById('tableViewBtn');
+    
+    if (cardViewBtn && tableViewBtn) {
+        cardViewBtn.addEventListener('click', function() {
+            switchView('cards');
+        });
+        
+        tableViewBtn.addEventListener('click', function() {
+            switchView('table');
+        });
+        
+        // Load saved view preference or default to cards
+        const savedView = localStorage.getItem('discViewPreference');
+        if (savedView === 'table') {
+            switchView('table');
+        } else {
+            switchView('cards'); // Default to cards view
+        }
     }
 });
