@@ -7,6 +7,7 @@ from urllib.parse import urljoin, quote_plus
 from fake_useragent import UserAgent
 from decimal import Decimal
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .models import Disc, StockStatus
 
@@ -61,21 +62,60 @@ class OTBDiscsScraper:
             
             logger.info(f"Found {len(relevant_products)} relevant product pages (filtered from {len(products)} total results)")
             
-            # Second pass: get detailed disc variants from each relevant product page
-            for product_summary in relevant_products:
-                if product_summary.product_url:
-                    logger.info(f"Fetching detailed variants for: {product_summary.mold} ({product_summary.plastic_type})")
-                    detailed_discs = self.parse_product_page(product_summary.product_url)
-                    all_discs.extend(detailed_discs)
-                else:
-                    # If no URL, just add the summary disc
-                    all_discs.append(product_summary)
+            # Second pass: get detailed disc variants from each relevant product page (concurrent)
+            products_with_urls = [p for p in relevant_products if p.product_url]
+            products_without_urls = [p for p in relevant_products if not p.product_url]
+            
+            if products_with_urls:
+                logger.info(f"Fetching detailed variants concurrently for {len(products_with_urls)} product pages...")
+                
+                # Use ThreadPoolExecutor for concurrent fetching
+                max_workers = min(len(products_with_urls), 5)  # Limit to 5 concurrent requests max
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    # Submit all tasks
+                    future_to_product = {
+                        executor.submit(self._fetch_product_variants, product.product_url, product): product
+                        for product in products_with_urls
+                    }
+                    
+                    # Collect results as they complete
+                    for future in as_completed(future_to_product):
+                        product = future_to_product[future]
+                        try:
+                            detailed_discs = future.result()
+                            all_discs.extend(detailed_discs)
+                            logger.info(f"✓ Completed fetching variants for {product.mold} ({len(detailed_discs)} discs)")
+                        except Exception as e:
+                            logger.error(f"✗ Error fetching variants for {product.mold}: {e}")
+                            # If individual page fails, add the summary disc as fallback
+                            all_discs.append(product)
+            
+            # Add products without URLs as summary discs
+            all_discs.extend(products_without_urls)
                     
             logger.info(f"Found {len(all_discs)} total individual discs for '{product_name}'")
             return all_discs
             
         except Exception as e:
             logger.error(f"Error searching for discs: {e}")
+            return []
+    
+    def _fetch_product_variants(self, url: str, product_summary: 'Disc') -> List[Disc]:
+        """
+        Fetch detailed variants for a single product page (used by ThreadPoolExecutor)
+        
+        Args:
+            url: Product page URL to fetch
+            product_summary: Summary disc object for context
+            
+        Returns:
+            List of detailed Disc objects from the product page
+        """
+        try:
+            logger.info(f"Fetching detailed variants for: {product_summary.mold} ({product_summary.plastic_type})")
+            return self.parse_product_page(url)
+        except Exception as e:
+            logger.error(f"Error fetching variants from {url}: {e}")
             return []
     
     def parse_product_page(self, url: str) -> List[Disc]:
