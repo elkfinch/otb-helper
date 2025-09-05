@@ -4,6 +4,401 @@
 let currentFilters = {};
 let allDiscs = []; // Store all fetched discs for client-side filtering
 
+// Global cart state
+let cart = []; // Store selected discs for cart functionality
+
+// Cart management functions
+function loadCart() {
+    const savedCart = localStorage.getItem('otbHelperCart');
+    if (savedCart) {
+        try {
+            cart = JSON.parse(savedCart);
+        } catch (e) {
+            console.error('Error loading cart from localStorage:', e);
+            cart = [];
+        }
+    }
+    updateCartDisplay();
+}
+
+function saveCart() {
+    localStorage.setItem('otbHelperCart', JSON.stringify(cart));
+    updateCartDisplay();
+}
+
+function addToCart(disc) {
+    // Create a unique identifier for the disc
+    const discId = `${disc.brand}-${disc.mold}-${disc.plastic_type}-${disc.plastic_color}-${disc.weight}-${disc.stamp_foil}`;
+    
+    // Check if disc is already in cart
+    const existingItem = cart.find(item => item.id === discId);
+    if (existingItem) {
+        showNotification('This disc is already in your cart!', 'info');
+        return;
+    }
+    
+    // Add to cart
+    const cartItem = {
+        id: discId,
+        ...disc,
+        addedAt: new Date().toISOString()
+    };
+    
+    cart.push(cartItem);
+    saveCart();
+    showNotification(`Added ${disc.plastic_type} ${disc.mold} to cart!`, 'success');
+    
+    // Cart panel will not auto-open - user can manually open it
+}
+
+function removeFromCart(discId) {
+    cart = cart.filter(item => item.id !== discId);
+    saveCart();
+    showNotification('Item removed from cart', 'info');
+}
+
+function clearCart() {
+    cart = [];
+    saveCart();
+    showNotification('Cart cleared', 'info');
+}
+
+// Floating cart panel functions
+function toggleCartPanel() {
+    const cartPanel = document.getElementById('cartPanel');
+    if (cartPanel) {
+        const isVisible = cartPanel.style.right === '0px';
+        console.log('Current right position:', cartPanel.style.right);
+        console.log('isVisible:', isVisible);
+        
+        if (isVisible) {
+            cartPanel.style.right = '-400px';
+            console.log('Hiding panel');
+        } else {
+            cartPanel.style.display = 'block';
+            // Small delay to ensure display is set before animation
+            setTimeout(() => {
+                cartPanel.style.right = '0px';
+            }, 10);
+            console.log('Showing panel');
+        }
+        
+        console.log('New right position:', cartPanel.style.right);
+    }
+}
+
+function openCartPanel() {
+    const cartPanel = document.getElementById('cartPanel');
+    if (cartPanel) {
+        cartPanel.style.display = 'block';
+        // Small delay to ensure display is set before animation
+        setTimeout(() => {
+            cartPanel.style.right = '0px';
+        }, 10);
+    }
+}
+
+function closeCartPanel() {
+    const cartPanel = document.getElementById('cartPanel');
+    if (cartPanel) {
+        cartPanel.style.right = '-400px';
+        // Hide after animation completes
+        setTimeout(() => {
+            cartPanel.style.display = 'none';
+        }, 300);
+    }
+}
+
+function updateCartDisplay() {
+    const floatingCartCount = document.getElementById('floatingCartCount');
+    const cartItems = document.getElementById('cartItems');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    const clearCartBtn = document.getElementById('clearCartBtn');
+    
+    // Update floating cart count badge
+    if (floatingCartCount) {
+        floatingCartCount.textContent = cart.length;
+        floatingCartCount.style.display = cart.length > 0 ? 'flex' : 'none';
+    }
+    
+    // Update cart items display
+    if (cartItems) {
+        if (cart.length === 0) {
+            cartItems.innerHTML = '<p class="text-gray-500 text-center py-4">Your cart is empty</p>';
+        } else {
+            cartItems.innerHTML = cart.map(item => `
+                <div class="flex items-center justify-between p-3 border-b border-gray-200 last:border-b-0 cart-item-enter">
+                    <div class="flex-1">
+                        <div class="font-medium text-sm">${item.plastic_type} ${item.mold}</div>
+                        <div class="text-xs text-gray-500">${item.plastic_color || 'N/A'} • ${item.weight ? item.weight + 'g' : 'N/A'}</div>
+                        <div class="text-sm font-semibold text-green-600">$${item.price || 'N/A'}</div>
+                    </div>
+                    <button onclick="removeFromCart('${item.id}')" class="text-red-500 hover:text-red-700 text-sm">
+                        ✕
+                    </button>
+                </div>
+            `).join('');
+        }
+    }
+    
+    // Update checkout button state
+    if (checkoutBtn) {
+        checkoutBtn.disabled = cart.length === 0;
+        checkoutBtn.classList.toggle('opacity-50', cart.length === 0);
+        checkoutBtn.classList.toggle('cursor-not-allowed', cart.length === 0);
+    }
+    
+    // Update clear cart button visibility
+    if (clearCartBtn) {
+        clearCartBtn.style.display = cart.length > 0 ? 'block' : 'none';
+    }
+    
+    // Add hover effects to buttons
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('mouseenter', function() {
+            if (!this.disabled) {
+                this.style.backgroundColor = '#059669';
+            }
+        });
+        checkoutBtn.addEventListener('mouseleave', function() {
+            if (!this.disabled) {
+                this.style.backgroundColor = '#10b981';
+            }
+        });
+    }
+    
+    if (clearCartBtn) {
+        clearCartBtn.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#dc2626';
+        });
+        clearCartBtn.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '#ef4444';
+        });
+    }
+}
+
+function checkoutToOTB() {
+    if (cart.length === 0) {
+        showNotification('Your cart is empty!', 'error');
+        return;
+    }
+    
+    // Filter items that have product URLs
+    const itemsWithUrls = cart.filter(item => item.product_url);
+    const itemsWithoutUrls = cart.filter(item => !item.product_url);
+    
+    if (itemsWithUrls.length === 0) {
+        showNotification('No items have direct product links. Please search for these items manually on OTB.', 'error');
+        return;
+    }
+    
+    // Create a message with cart contents
+    const cartSummary = cart.map(item => 
+        `${item.plastic_type} ${item.mold} - ${item.plastic_color || 'N/A'} (${item.weight ? item.weight + 'g' : 'N/A'}) - $${item.price || 'N/A'}`
+    ).join('\n');
+    
+    // Close the cart panel
+    closeCartPanel();
+    
+    // Show instructions modal
+    showCheckoutInstructions(itemsWithUrls, itemsWithoutUrls, cartSummary);
+}
+
+function showCheckoutInstructions(itemsWithUrls, itemsWithoutUrls, cartSummary) {
+    // Create modal overlay
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-800">🛒 Quick Add to OTB Cart</h3>
+                <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-blue-800 mb-2">📋 How to use this table:</h4>
+                    <p class="text-blue-700 text-sm">Click "Copy" to copy the search string, then click "Open Page" to go to the product page. Use <kbd class="bg-gray-200 px-1 rounded text-xs">Cmd+F</kbd>/<kbd class="bg-gray-200 px-1 rounded text-xs">Ctrl+F</kbd> to find your exact disc quickly!</p>
+                </div>
+                
+                ${itemsWithUrls.length > 0 ? `
+                <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                        <h4 class="font-semibold text-gray-800">✅ Items with Direct Links (${itemsWithUrls.length})</h4>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disc Name</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quick Find String</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${itemsWithUrls.map((item, index) => `
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            ${item.plastic_type} ${item.mold}
+                                        </td>
+                                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            ${item.plastic_color || 'N/A'}
+                                        </td>
+                                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            ${item.weight ? item.weight + 'g' : 'N/A'}
+                                        </td>
+                                        <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
+                                            $${item.price || 'N/A'}
+                                        </td>
+                                        <td class="px-4 py-4 text-sm text-gray-900">
+                                            <code class="bg-gray-100 px-2 py-1 rounded text-xs font-mono">${generateUniqueSearchString(item)}</code>
+                                        </td>
+                                        <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                            <div class="flex gap-2">
+                                                <button onclick="copySingleSearchText('${generateUniqueSearchString(item).replace(/'/g, "\\'")}')" 
+                                                        class="bg-gray-500 text-white px-3 py-1 rounded text-xs font-medium hover:bg-gray-600 transition-colors">
+                                                    📋 Copy
+                                                </button>
+                                                <button onclick="openProductPage('${item.product_url}', ${index + 1}, ${itemsWithUrls.length})" 
+                                                        class="bg-blue-500 text-white px-3 py-1 rounded text-xs font-medium hover:bg-blue-600 transition-colors">
+                                                    🔗 Open Page
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${itemsWithoutUrls.length > 0 ? `
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-yellow-800 mb-2">⚠️ Items to Add Manually (${itemsWithoutUrls.length})</h4>
+                    <div class="space-y-2 max-h-32 overflow-y-auto">
+                        ${itemsWithoutUrls.map(item => `
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-yellow-700">${item.plastic_type} ${item.mold} - ${item.plastic_color || 'N/A'}</span>
+                                <span class="text-yellow-600 font-semibold">$${item.price || 'N/A'}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <p class="text-yellow-700 text-xs mt-2">Search for these items manually on OTB Discs</p>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Store cart summary globally for copy function
+    window.cartSummaryForCopy = cartSummary;
+}
+
+
+function openProductPage(url, itemNumber, totalItems) {
+    if (url) {
+        window.open(url, '_blank');
+        showNotification(`Opening item ${itemNumber}/${totalItems} - look for the disc matching the criteria shown`, 'info');
+    }
+}
+
+
+function generateUniqueSearchString(item) {
+    // Use the raw row text if available - this matches exactly how it appears on OTB
+    if (item.raw_row_text && item.raw_row_text.trim()) {
+        return item.raw_row_text;
+    }
+    
+    // Fallback: create a search string from individual attributes
+    const parts = [];
+    
+    // Add weight if available (most specific)
+    if (item.weight) {
+        parts.push(`${item.weight}g`);
+    }
+    
+    // Add plastic color if available
+    if (item.plastic_color && item.plastic_color !== 'N/A') {
+        parts.push(item.plastic_color);
+    }
+    
+    // Add stamp foil if available
+    if (item.stamp_foil && item.stamp_foil !== 'N/A') {
+        parts.push(item.stamp_foil);
+    }
+    
+    // Add rim color if available
+    if (item.rim_color && item.rim_color !== 'N/A') {
+        parts.push(item.rim_color);
+    }
+    
+    // Add price if available (very specific)
+    if (item.price) {
+        parts.push(`$${item.price}`);
+    }
+    
+    // If we have enough specific parts, use them
+    if (parts.length >= 2) {
+        return parts.join(' ');
+    }
+    
+    // Final fallback: use mold and plastic type
+    return `${item.plastic_type} ${item.mold}`;
+}
+
+
+function copySingleSearchText(searchText) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(searchText).then(() => {
+            showNotification('Search text copied to clipboard!', 'success');
+        }).catch(err => {
+            console.error('Failed to copy search text:', err);
+            showNotification('Failed to copy search text', 'error');
+        });
+    }
+}
+
+function copyAllSearchCriteria(items) {
+    const criteria = items.map((item, index) => 
+        `Item ${index + 1}: ${item.plastic_type} ${item.mold}
+- Color: ${item.plastic_color || 'N/A'}
+- Weight: ${item.weight ? item.weight + 'g' : 'N/A'}
+- Stamp Foil: ${item.stamp_foil || 'N/A'}
+- Price: $${item.price || 'N/A'}
+- Quick Find: ${generateUniqueSearchString(item)}
+- Raw Row Text: ${item.raw_row_text || 'Not available'}
+- Look for: ${item.plastic_color || 'Any color'} color, ${item.weight ? item.weight + 'g' : 'any weight'} weight, ${item.stamp_foil || 'any foil'} foil
+`
+    ).join('\n');
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(criteria).then(() => {
+            showNotification('Search criteria copied to clipboard!', 'success');
+        }).catch(err => {
+            console.error('Failed to copy criteria:', err);
+            showNotification('Failed to copy criteria', 'error');
+        });
+    }
+}
+
+
+function copyCartSummary() {
+    if (window.cartSummaryForCopy && navigator.clipboard) {
+        navigator.clipboard.writeText(window.cartSummaryForCopy).then(() => {
+            showNotification('Cart summary copied to clipboard!', 'success');
+        }).catch(err => {
+            console.error('Failed to copy cart summary:', err);
+            showNotification('Failed to copy cart summary', 'error');
+        });
+    }
+}
+
 // Health check function
 async function checkHealth() {
     const resultDiv = document.getElementById('health-result');
@@ -1030,7 +1425,10 @@ function createDiscCard(disc) {
             
             <div class="flex justify-between items-center pt-2 border-t border-gray-100">
                 <span class="${stockClass} font-medium">${stockText}</span>
-                ${disc.product_url ? `<a href="${disc.product_url}" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View Details →</a>` : ''}
+                <button onclick="addToCart(${JSON.stringify(disc).replace(/"/g, '&quot;')})" 
+                        class="bg-blue-500 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-600 transition-colors">
+                    🛒 Add to Cart
+                </button>
             </div>
         </div>
     `;
@@ -1121,7 +1519,10 @@ function createTableRow(disc) {
             <span class="px-2 py-1 text-xs font-medium rounded-full ${stockClass}">${stockText}</span>
         </td>
         <td class="px-4 py-4 whitespace-nowrap text-sm">
-            ${disc.product_url ? `<a href="${disc.product_url}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">View →</a>` : 'N/A'}
+            <button onclick="addToCart(${JSON.stringify(disc).replace(/"/g, '&quot;')})" 
+                    class="bg-blue-500 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-600 transition-colors">
+                🛒 Add to Cart
+            </button>
         </td>
     `;
     
@@ -1171,6 +1572,9 @@ function showNotification(message, type = 'info') {
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('OTB Helper - Disc Golf Disc Finder initialized');
+    
+    // Initialize cart
+    loadCart();
     
     // Add fade-in animation to main content
     const mainContent = document.querySelector('main');
@@ -1252,6 +1656,50 @@ document.addEventListener('DOMContentLoaded', function() {
             switchView('cards'); // Default to cards view
         }
     }
+    
+    // Add event listener for floating cart button as backup
+    const floatingCartBtn = document.getElementById('floatingCartBtn');
+    const floatingCart = document.getElementById('floatingCart');
+    const cartPanel = document.getElementById('cartPanel');
+    
+    console.log('🚀 DOM loaded - checking cart elements:');
+    console.log('floatingCart:', !!floatingCart);
+    console.log('floatingCartBtn:', !!floatingCartBtn);
+    console.log('cartPanel:', !!cartPanel);
+    
+    if (floatingCartBtn) {
+        console.log('✅ Adding event listener to floating cart button');
+        floatingCartBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('🎯 Event listener triggered!');
+            toggleCartPanel();
+        });
+        
+        // Add hover effects
+        floatingCartBtn.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#ff6600';
+            this.style.transform = 'scale(1.1)';
+        });
+        
+        floatingCartBtn.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '#ff0000';
+            this.style.transform = 'scale(1)';
+        });
+    } else {
+        console.error('❌ Floating cart button not found!');
+    }
+    
+    // Close cart panel when clicking outside
+    document.addEventListener('click', function(e) {
+        const cartPanel = document.getElementById('cartPanel');
+        const floatingCartBtn = document.getElementById('floatingCartBtn');
+        
+        if (cartPanel && cartPanel.style.right === '0px') {
+            if (!cartPanel.contains(e.target) && !floatingCartBtn.contains(e.target)) {
+                closeCartPanel();
+            }
+        }
+    });
 });
 
 // Set up event listeners for filter inputs

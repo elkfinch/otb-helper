@@ -35,6 +35,7 @@ class Disc(BaseModel):
     image_url: Optional[str] = None
     sku: Optional[str] = None
     description: Optional[str] = None
+    raw_row_text: Optional[str] = Field(None, description="Raw text from the OTB product table row for exact matching")
     
     @field_validator('weight', 'scaled_weight', 'flatness', 'stiffness')
     @classmethod

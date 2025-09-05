@@ -318,6 +318,58 @@ class OTBDiscsScraper:
                 if img_element and img_element.get('src'):
                     image_url = img_element['src']
             
+            # Capture the raw row text for exact matching on OTB pages
+            # This preserves the exact formatting as it appears on the OTB website
+            raw_row_text = None
+            try:
+                # Get the parent row element
+                row_element = cells[0].parent if cells else None
+                if row_element:
+                    # Get the raw HTML of the row to see the exact structure
+                    row_html = str(row_element)
+                    logger.debug(f"Raw row HTML: {row_html}")
+                    
+                    # Extract text from each cell, preserving the order and excluding unwanted elements
+                    row_parts = []
+                    
+                    for i, cell in enumerate(cells):
+                        # Skip thumbnail/image cells (usually first column)
+                        if i == 0 and ('thumbnail' in column_map or 'image' in column_map):
+                            continue
+                        
+                        # Get the cell text, but exclude buttons and stock messages
+                        cell_text = cell.get_text(strip=True)
+                        
+                        # Skip cells that contain button text or stock messages
+                        if any(skip_text in cell_text.lower() for skip_text in [
+                            'add to cart', 'just 1 left', 'in stock', 'out of stock', 
+                            'limited', 'button', 'click', 'buy now'
+                        ]):
+                            continue
+                        
+                        # Skip empty cells
+                        if not cell_text:
+                            continue
+                        
+                        # Clean up the cell text - preserve the exact content
+                        # Only replace newlines with spaces, preserve tabs and other whitespace
+                        cell_text = cell_text.replace('\n', ' ').replace('\r', ' ')
+                        # Remove leading/trailing whitespace but preserve internal formatting
+                        cell_text = cell_text.strip()
+                        
+                        if cell_text:
+                            row_parts.append(cell_text)
+                    
+                    if row_parts:
+                        # Join with tabs to match OTB's table format
+                        raw_row_text = '\t'.join(row_parts)
+                        logger.debug(f"Captured raw row text for {mold}: '{raw_row_text}'")
+                        logger.debug(f"Raw row text repr: {repr(raw_row_text)}")
+                        logger.debug(f"Row parts: {row_parts}")
+                    
+            except Exception as e:
+                logger.warning(f"Could not capture raw row text: {e}")
+            
             disc = Disc(
                 brand=brand,
                 mold=mold,
@@ -332,7 +384,8 @@ class OTBDiscsScraper:
                 price=price,
                 stock=stock_status,
                 product_url=product_url,
-                image_url=image_url
+                image_url=image_url,
+                raw_row_text=raw_row_text
             )
             
             return disc

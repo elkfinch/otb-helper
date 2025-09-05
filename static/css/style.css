@@ -527,3 +527,115 @@ body {
     max-height: 1000px;
     opacity: 1;
 }
+
+/* Floating Cart Styles */
+#floatingCart {
+    transition: all 0.3s ease-in-out;
+    display: block !important;
+    visibility: visible !important;
+}
+
+#floatingCartBtn {
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#floatingCartBtn:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+#floatingCartCount {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    animation: cartPulse 0.3s ease-in-out;
+}
+
+@keyframes cartPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+#cartPanel {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+/* Cart panel positioning - override any Tailwind classes */
+#cartPanel.closed {
+    transform: translateX(100%) !important;
+}
+
+#cartPanel.open {
+    transform: translateX(0) !important;
+}
+
+/* Even more specific selectors */
+div#cartPanel.closed {
+    transform: translateX(100%) !important;
+}
+
+div#cartPanel.open {
+    transform: translateX(0) !important;
+}
+
+/* Maximum specificity */
+body div#cartPanel.closed {
+    transform: translateX(100%) !important;
+}
+
+body div#cartPanel.open {
+    transform: translateX(0) !important;
+}
+
+/* Cart item animations */
+.cart-item-enter {
+    animation: slideInFromRight 0.3s ease-out;
+}
+
+.cart-item-exit {
+    animation: slideOutToRight 0.3s ease-in;
+}
+
+@keyframes slideInFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOutToRight {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+}
+
+/* Responsive cart panel */
+@media (max-width: 640px) {
+    #cartPanel {
+        width: calc(100vw - 24px);
+        right: 12px;
+        left: 12px;
+    }
+    
+    #floatingCart {
+        bottom: 4px;
+        right: 4px;
+    }
+}
