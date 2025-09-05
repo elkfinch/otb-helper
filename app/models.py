@@ -55,7 +55,6 @@ class DiscFilter(BaseModel):
     """Model for filtering disc search results"""
     
     # Text filters (exact match or list of options)
-    brand: Optional[Union[str, List[str]]] = None
     mold: Optional[Union[str, List[str]]] = None
     plastic_type: Optional[Union[str, List[str]]] = None
     plastic_color: Optional[Union[str, List[str]]] = None  # Renamed from color

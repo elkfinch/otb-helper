@@ -28,7 +28,7 @@ function saveCart() {
 
 function addToCart(disc) {
     // Create a unique identifier for the disc
-    const discId = `${disc.brand}-${disc.mold}-${disc.plastic_type}-${disc.plastic_color}-${disc.weight}-${disc.stamp_foil}`;
+    const discId = `${disc.mold}-${disc.plastic_type}-${disc.plastic_color}-${disc.weight}-${disc.stamp_foil}`;
     
     // Check if disc is already in cart
     const existingItem = cart.find(item => item.id === discId);
@@ -428,7 +428,6 @@ function applyClientSideFilters(discs, filters) {
     
     return discs.filter(disc => {
         // Text filters (multiple selection support)
-        if (filters.brand && filters.brand.length > 0 && !filters.brand.includes(disc.brand)) return false;
         if (filters.mold && filters.mold.length > 0 && !filters.mold.includes(disc.mold)) return false;
         if (filters.plastic_type && filters.plastic_type.length > 0 && !filters.plastic_type.includes(disc.plastic_type)) return false;
         if (filters.plastic_color && filters.plastic_color.length > 0 && !filters.plastic_color.includes(disc.plastic_color)) return false;
@@ -466,7 +465,6 @@ function populateFilterDropdowns(discs) {
     
     // Extract unique values for each filter field
     const filterValues = {
-        brand: [...new Set(discs.map(d => d.brand).filter(Boolean))].sort(),
         mold: [...new Set(discs.map(d => d.mold).filter(Boolean))].sort(),
         plastic_type: [...new Set(discs.map(d => d.plastic_type).filter(Boolean))].sort(),
         plastic_color: [...new Set(discs.map(d => d.plastic_color).filter(Boolean))].sort(),
@@ -487,7 +485,6 @@ function populateFilterDropdowns(discs) {
 // Function to get the correct options container ID for a field name
 function getOptionsContainerId(fieldName) {
     const idMapping = {
-        'brand': 'brandOptions',
         'mold': 'moldOptions', 
         'plastic_type': 'plasticTypeOptions',
         'plastic_color': 'plasticColorOptions',
@@ -543,18 +540,24 @@ function setupDropdownChecklist(fieldName) {
     
     const toggle = dropdown.querySelector('.dropdown-toggle');
     const menu = dropdown.querySelector('.dropdown-menu');
-    const allCheckbox = dropdown.querySelector('input[name="' + fieldName + '_all"]');
+    const deselectAllBtn = dropdown.querySelector('.deselect-all-btn');
     const checkboxes = dropdown.querySelectorAll(`input[name="${fieldName}"]`);
     
-    console.log(`Setting up dropdown for ${fieldName}:`, { dropdown, toggle, menu, allCheckbox, checkboxes: checkboxes.length });
+    console.log(`Setting up dropdown for ${fieldName}:`, { dropdown, toggle, menu, deselectAllBtn, checkboxes: checkboxes.length });
     
     // Remove existing event listeners by cloning the elements
     const newToggle = toggle.cloneNode(true);
     toggle.parentNode.replaceChild(newToggle, toggle);
     
+    // Also clone the deselect all button to remove existing event listeners
+    if (deselectAllBtn) {
+        const newDeselectAllBtn = deselectAllBtn.cloneNode(true);
+        deselectAllBtn.parentNode.replaceChild(newDeselectAllBtn, deselectAllBtn);
+    }
+    
     // Get the new references
     const newToggleRef = dropdown.querySelector('.dropdown-toggle');
-    const newAllCheckbox = dropdown.querySelector('input[name="' + fieldName + '_all"]');
+    const newDeselectAllBtn = dropdown.querySelector('.deselect-all-btn');
     const newCheckboxes = dropdown.querySelectorAll(`input[name="${fieldName}"]`);
     
     // Toggle dropdown open/close
@@ -584,39 +587,38 @@ function setupDropdownChecklist(fieldName) {
         }
     });
     
-    // Handle "All" checkbox
-    if (newAllCheckbox) {
-        newAllCheckbox.addEventListener('change', function() {
-            console.log(`All checkbox changed for ${fieldName}:`, this.checked);
-            if (this.checked) {
-                // Uncheck all individual options
-                newCheckboxes.forEach(cb => {
-                    if (cb !== this) cb.checked = false;
-                });
-            }
+    // Handle "Deselect All" button
+    if (newDeselectAllBtn) {
+        console.log(`Setting up Deselect All button for ${fieldName}`);
+        newDeselectAllBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log(`Deselect All clicked for ${fieldName}`);
+            
+            // Find checkboxes dynamically (in case they were recreated)
+            const currentCheckboxes = dropdown.querySelectorAll(`input[name="${fieldName}"]`);
+            console.log(`Found ${currentCheckboxes.length} checkboxes to uncheck`);
+            
+            // Uncheck all individual options
+            currentCheckboxes.forEach(cb => {
+                cb.checked = false;
+                console.log(`Unchecked checkbox: ${cb.value}`);
+            });
+            
             updateDropdownText(fieldName);
             updateFilters();
         });
+    } else {
+        console.error(`Deselect All button not found for ${fieldName}`);
     }
     
     // Handle individual checkboxes
     newCheckboxes.forEach(checkbox => {
-        if (checkbox !== newAllCheckbox) {
-            checkbox.addEventListener('change', function() {
-                // Skip if checkbox is disabled
-                if (this.disabled) {
-                    return;
-                }
-                
-                console.log(`Individual checkbox changed for ${fieldName}:`, this.value, this.checked);
-                if (this.checked) {
-                    // Uncheck "All" when individual option is selected
-                    if (newAllCheckbox) newAllCheckbox.checked = false;
-                }
-                updateDropdownText(fieldName);
-                updateFilters();
-            });
-        }
+        checkbox.addEventListener('change', function() {
+            console.log(`Individual checkbox changed for ${fieldName}:`, this.value, this.checked);
+            updateDropdownText(fieldName);
+            updateFilters();
+        });
     });
     
     // Close dropdown when clicking outside
@@ -637,22 +639,21 @@ function updateDropdownText(fieldName) {
     if (!dropdown) return;
     
     const selectedText = dropdown.querySelector('.selected-text');
-    const allCheckbox = dropdown.querySelector('input[name="' + fieldName + '_all"]');
-    const checkboxes = dropdown.querySelectorAll(`input[name="${fieldName}"]:not([name$="_all"])`);
+    const checkboxes = dropdown.querySelectorAll(`input[name="${fieldName}"]`);
     
     if (!selectedText) return;
     
-    if (allCheckbox && allCheckbox.checked) {
+    const selectedValues = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+    const totalValues = Array.from(checkboxes).filter(cb => !cb.disabled).length;
+    
+    if (selectedValues.length === 0) {
         selectedText.textContent = `All ${fieldName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+    } else if (selectedValues.length === totalValues) {
+        selectedText.textContent = `All ${fieldName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+    } else if (selectedValues.length === 1) {
+        selectedText.textContent = selectedValues[0];
     } else {
-        const selectedValues = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-        if (selectedValues.length === 0) {
-            selectedText.textContent = `All ${fieldName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
-        } else if (selectedValues.length === 1) {
-            selectedText.textContent = selectedValues[0];
-        } else {
-            selectedText.textContent = `${selectedValues.length} selected`;
-        }
+        selectedText.textContent = `${selectedValues.length} selected`;
     }
 }
 
@@ -697,7 +698,7 @@ function updateRangeFilterPlaceholders(discs) {
         updateRangeVisualization('weight', minWeight, maxWeight, 0, 0);
     }
     
-    // Get price range
+    // Get price range (show exact decimal range)
     const priceValues = allDiscs.map(d => parseFloat(d.price)).filter(v => !isNaN(v));
     if (priceValues.length > 0) {
         const minPrice = Math.min(...priceValues);
@@ -729,19 +730,71 @@ function updateRangeVisualization(type, min, max, currentMin, currentMax) {
         }
     }
     
+    // Update slider ranges if they exist (for weight and price)
+    const sliderRange = document.getElementById(`${type}SliderRange`);
+    if (sliderRange) {
+        const minSlider = document.querySelector(`input[name="${type}_slider_min"]`);
+        const maxSlider = document.querySelector(`input[name="${type}_slider_max"]`);
+        
+        if (minSlider && maxSlider) {
+            // Update slider min/max values based on data range
+            minSlider.min = Math.floor(min);
+            minSlider.max = Math.ceil(max);
+            maxSlider.min = Math.floor(min);
+            maxSlider.max = Math.ceil(max);
+            
+            // Update slider range visualization
+            const minVal = parseFloat(minSlider.value);
+            const maxVal = parseFloat(maxSlider.value);
+            
+            if (minVal > maxVal) {
+                minSlider.value = maxVal;
+                maxSlider.value = minVal;
+            }
+            
+            const minPercent = ((minSlider.value - minSlider.min) / (minSlider.max - minSlider.min)) * 100;
+            const maxPercent = ((maxSlider.value - minSlider.min) / (minSlider.max - minSlider.min)) * 100;
+            
+            sliderRange.style.left = `${minPercent}%`;
+            sliderRange.style.width = `${maxPercent - minPercent}%`;
+        }
+    }
+    
+    // Update old range fill bars if they exist (for backward compatibility)
     if (rangeFill) {
         const range = max - min;
         if (range > 0) {
+            // Calculate the position of the selected range within the full range
             const leftPercent = ((currentMin - min) / range) * 100;
-            const widthPercent = ((currentMax - currentMin) / range) * 100;
-            rangeFill.style.left = `${Math.max(0, leftPercent)}%`;
-            rangeFill.style.width = `${Math.max(0, widthPercent)}%`;
+            const rightPercent = ((currentMax - min) / range) * 100;
+            
+            // Set the bar to always be full width (100%)
+            rangeFill.style.width = '100%';
+            rangeFill.style.left = '0%';
+            
+            // Create a mask effect using a pseudo-element or background
+            // The blue bar represents the full range, and we'll use a grey overlay for excluded areas
+            const excludedLeftPercent = Math.max(0, leftPercent);
+            const excludedRightPercent = Math.min(100, 100 - rightPercent);
+            
+            // Use CSS custom properties to create the visual effect
+            rangeFill.style.setProperty('--excluded-left', `${excludedLeftPercent}%`);
+            rangeFill.style.setProperty('--excluded-right', `${excludedRightPercent}%`);
         }
     }
 }
 
 // Function to setup dual range sliders
 function setupDualRangeSliders() {
+    // Weight slider
+    const weightSliderMin = document.querySelector('input[name="weight_slider_min"]');
+    const weightSliderMax = document.querySelector('input[name="weight_slider_max"]');
+    const weightSliderRange = document.getElementById('weightSliderRange');
+    
+    if (weightSliderMin && weightSliderMax && weightSliderRange) {
+        setupSlider(weightSliderMin, weightSliderMax, weightSliderRange, 'weight');
+    }
+    
     // Flatness slider
     const flatnessSliderMin = document.querySelector('input[name="flatness_slider_min"]');
     const flatnessSliderMax = document.querySelector('input[name="flatness_slider_max"]');
@@ -758,6 +811,15 @@ function setupDualRangeSliders() {
     
     if (stiffnessSliderMin && stiffnessSliderMax && stiffnessSliderRange) {
         setupSlider(stiffnessSliderMin, stiffnessSliderMax, stiffnessSliderRange, 'stiffness');
+    }
+    
+    // Price slider
+    const priceSliderMin = document.querySelector('input[name="price_slider_min"]');
+    const priceSliderMax = document.querySelector('input[name="price_slider_max"]');
+    const priceSliderRange = document.getElementById('priceSliderRange');
+    
+    if (priceSliderMin && priceSliderMax && priceSliderRange) {
+        setupSlider(priceSliderMin, priceSliderMax, priceSliderRange, 'price');
     }
 }
 
@@ -845,7 +907,6 @@ function updateAvailableFilterOptions() {
     
     // Extract ALL values from original dataset
     const allOriginalValues = {
-        brand: [...new Set(allDiscs.map(d => d.brand).filter(Boolean))].sort(),
         mold: [...new Set(allDiscs.map(d => d.mold).filter(Boolean))].sort(),
         plastic_type: [...new Set(allDiscs.map(d => d.plastic_type).filter(Boolean))].sort(),
         plastic_color: [...new Set(allDiscs.map(d => d.plastic_color).filter(Boolean))].sort(),
@@ -854,7 +915,6 @@ function updateAvailableFilterOptions() {
     
     // Extract available values from filtered discs
     const availableValues = {
-        brand: [...new Set(filteredDiscs.map(d => d.brand).filter(Boolean))].sort(),
         mold: [...new Set(filteredDiscs.map(d => d.mold).filter(Boolean))].sort(),
         plastic_type: [...new Set(filteredDiscs.map(d => d.plastic_type).filter(Boolean))].sort(),
         plastic_color: [...new Set(filteredDiscs.map(d => d.plastic_color).filter(Boolean))].sort(),
@@ -877,38 +937,29 @@ function updateAvailableFilterOptions() {
         
         innerOptionsContainer.innerHTML = '';
         
-        // Create new "All" checkbox
-        const newAllCheckbox = document.createElement('label');
-        newAllCheckbox.className = 'checkbox-item';
-        newAllCheckbox.innerHTML = `
-            <input type="checkbox" id="${fieldName}_all" name="${fieldName}_all" value="">
-            <span>All ${fieldName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} (${allOriginalValues[fieldName].length})</span>
-        `;
-        innerOptionsContainer.appendChild(newAllCheckbox);
-        
-        // Add all original options, marking unavailable ones as disabled
+        // Add all original options, with visual distinction for filtered ones
         allOriginalValues[fieldName].forEach(value => {
             const checkboxItem = document.createElement('label');
             const isAvailable = availableValues[fieldName].includes(value);
             
-            // Add disabled class if not available
-            checkboxItem.className = isAvailable ? 'checkbox-item' : 'checkbox-item disabled';
+            // Use visual styling instead of disabling
+            checkboxItem.className = isAvailable ? 'checkbox-item' : 'checkbox-item filtered';
             
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.name = fieldName;
             checkbox.value = value;
-            checkbox.disabled = !isAvailable;
+            // Keep all checkboxes enabled - don't disable them
             
             const span = document.createElement('span');
             span.textContent = value;
-            span.className = isAvailable ? '' : 'disabled-text';
+            span.className = isAvailable ? '' : 'filtered-text';
             
             checkboxItem.appendChild(checkbox);
             checkboxItem.appendChild(span);
             
-            // Restore selection if this value was previously selected and is available
-            if (Array.isArray(currentValues) && currentValues.includes(value) && isAvailable) {
+            // Restore selection if this value was previously selected (regardless of availability)
+            if (Array.isArray(currentValues) && currentValues.includes(value)) {
                 checkbox.checked = true;
             }
             
@@ -930,7 +981,7 @@ function updateFilters() {
     // Build current filters object
     currentFilters = {};
     const filterFields = [
-        'brand', 'mold', 'plastic_type', 'plastic_color', 'rim_color', 'stamp_foil',
+        'mold', 'plastic_type', 'plastic_color', 'rim_color', 'stamp_foil',
         'weight_min', 'weight_max', 'scaled_weight_min', 'scaled_weight_max',
         'flatness_min', 'flatness_max', 'stiffness_min', 'stiffness_max',
         'price_min', 'price_max'
@@ -951,7 +1002,7 @@ function updateFilters() {
     });
     
     // Handle multiple select values separately
-    const multipleSelectFields = ['brand', 'mold', 'plastic_type', 'plastic_color', 'stamp_foil'];
+    const multipleSelectFields = ['mold', 'plastic_type', 'plastic_color', 'stamp_foil'];
     multipleSelectFields.forEach(field => {
         const optionsContainer = document.getElementById(getOptionsContainerId(field));
         if (!optionsContainer) return;
@@ -959,8 +1010,8 @@ function updateFilters() {
         const dropdown = optionsContainer.closest('.dropdown-checklist');
         if (!dropdown) return;
         
-        // Only include enabled checkboxes that are checked
-        const selectedCheckboxes = Array.from(dropdown.querySelectorAll('input[name="' + field + '"]:checked:not(:disabled)')).map(cb => cb.value);
+        // Include all checked checkboxes (no longer filtering by disabled state)
+        const selectedCheckboxes = Array.from(dropdown.querySelectorAll('input[name="' + field + '"]:checked')).map(cb => cb.value);
         console.log(`Field: ${field}, Selected:`, selectedCheckboxes);
         // Filter out empty values and "All" option
         const validSelections = selectedCheckboxes.filter(value => value !== '');
@@ -1012,12 +1063,48 @@ function updateRangeVisualizationsFromFilters() {
     }
 }
 
+function hasMeaningfulFilters() {
+    // Check for text filters
+    const textFilters = ['mold', 'plastic_type', 'plastic_color', 'stamp_foil'];
+    for (const filter of textFilters) {
+        if (currentFilters[filter] && 
+            (Array.isArray(currentFilters[filter]) ? currentFilters[filter].length > 0 : true)) {
+            return true;
+        }
+    }
+    
+    // Check for weight filters
+    if (currentFilters.weight_min || currentFilters.weight_max) {
+        return true;
+    }
+    
+    // Check for price filters
+    if (currentFilters.price_min || currentFilters.price_max) {
+        return true;
+    }
+    
+    // Check for flatness filters (only if not default 1-10)
+    if ((currentFilters.flatness_min && currentFilters.flatness_min !== 1) || 
+        (currentFilters.flatness_max && currentFilters.flatness_max !== 10)) {
+        return true;
+    }
+    
+    // Check for stiffness filters (only if not default 1-10)
+    if ((currentFilters.stiffness_min && currentFilters.stiffness_min !== 1) || 
+        (currentFilters.stiffness_max && currentFilters.stiffness_max !== 10)) {
+        return true;
+    }
+    
+    return false;
+}
+
 function updateFilterUI() {
     const clearFiltersBtn = document.getElementById('clearFilters');
     const filterStatus = document.getElementById('filterStatus');
     const filterStatusText = document.getElementById('filterStatusText');
     
-    const hasActiveFilters = Object.keys(currentFilters).length > 0;
+    // Check if there are any meaningful filters (excluding default slider values)
+    const hasActiveFilters = hasMeaningfulFilters();
     
     // Show/hide clear filters button
     if (clearFiltersBtn) {
@@ -1048,13 +1135,6 @@ function getFilterSummary() {
     const summaries = [];
     
     // Text filters (handle multiple selections)
-    if (currentFilters.brand) {
-        if (Array.isArray(currentFilters.brand)) {
-            summaries.push(`Brands: ${currentFilters.brand.join(', ')}`);
-        } else {
-            summaries.push(`Brand: ${currentFilters.brand}`);
-        }
-    }
     if (currentFilters.mold) {
         if (Array.isArray(currentFilters.mold)) {
             summaries.push(`Molds: ${currentFilters.mold.join(', ')}`);
@@ -1092,17 +1172,21 @@ function getFilterSummary() {
         summaries.push(`Weight: ${weightRange.join(' - ')}`);
     }
     
-    if (currentFilters.flatness_min || currentFilters.flatness_max) {
+    // Only show flatness filter if it's not the default range (1-10)
+    if ((currentFilters.flatness_min && currentFilters.flatness_min !== 1) || 
+        (currentFilters.flatness_max && currentFilters.flatness_max !== 10)) {
         const flatnessRange = [];
-        if (currentFilters.flatness_min) flatnessRange.push(`≥${currentFilters.flatness_min}`);
-        if (currentFilters.flatness_max) flatnessRange.push(`≤${currentFilters.flatness_max}`);
+        if (currentFilters.flatness_min && currentFilters.flatness_min !== 1) flatnessRange.push(`≥${currentFilters.flatness_min}`);
+        if (currentFilters.flatness_max && currentFilters.flatness_max !== 10) flatnessRange.push(`≤${currentFilters.flatness_max}`);
         summaries.push(`Flatness: ${flatnessRange.join(' - ')}`);
     }
     
-    if (currentFilters.stiffness_min || currentFilters.stiffness_max) {
+    // Only show stiffness filter if it's not the default range (1-10)
+    if ((currentFilters.stiffness_min && currentFilters.stiffness_min !== 1) || 
+        (currentFilters.stiffness_max && currentFilters.stiffness_max !== 10)) {
         const stiffnessRange = [];
-        if (currentFilters.stiffness_min) stiffnessRange.push(`≥${currentFilters.stiffness_min}`);
-        if (currentFilters.stiffness_max) stiffnessRange.push(`≤${currentFilters.stiffness_max}`);
+        if (currentFilters.stiffness_min && currentFilters.stiffness_min !== 1) stiffnessRange.push(`≥${currentFilters.stiffness_min}`);
+        if (currentFilters.stiffness_max && currentFilters.stiffness_max !== 10) stiffnessRange.push(`≤${currentFilters.stiffness_max}`);
         summaries.push(`Stiffness: ${stiffnessRange.join(' - ')}`);
     }
     
@@ -1164,26 +1248,22 @@ function resetMoldSpecificFilters() {
     // Always remove mold-specific filters from currentFilters object first
     delete currentFilters.mold;
     delete currentFilters.plastic_type;
-    delete currentFilters.brand;
     
     // Try to reset UI elements if they exist
-    const fieldsToReset = ['mold', 'plastic_type', 'brand'];
+    const fieldsToReset = ['mold', 'plastic_type'];
     
     fieldsToReset.forEach(fieldName => {
         const optionsContainer = document.querySelector(`#${getOptionsContainerId(fieldName)}`);
         if (optionsContainer) {
             const dropdown = optionsContainer.closest('.dropdown-checklist');
             if (dropdown) {
-                const allCheckbox = dropdown.querySelector(`input[name="${fieldName}_all"]`);
-                const checkboxes = dropdown.querySelectorAll(`input[name="${fieldName}"]:not([name$="_all"])`);
+                const checkboxes = dropdown.querySelectorAll(`input[name="${fieldName}"]`);
                 
-                if (allCheckbox) {
-                    allCheckbox.checked = true;
-                    console.log(`✅ Reset ${fieldName} filter to "All"`);
-                }
+                // Uncheck all individual options (this means "All" is selected)
                 checkboxes.forEach(checkbox => {
                     checkbox.checked = false;
                 });
+                console.log(`✅ Reset ${fieldName} filter to "All"`);
                 updateDropdownText(fieldName);
             }
         } else {
@@ -1206,9 +1286,9 @@ async function searchDiscs(formData) {
         loadingIndicator.classList.remove('hidden');
         searchResults.classList.add('hidden');
         
-        // Reset mold-specific filters when searching for a new mold
+        // Reset all filters when searching for a new disc
         // This needs to happen after UI is ready but before building search request
-        resetMoldSpecificFilters();
+        clearAllFilters();
         
         // Build search request - limit to 3 product pages for reasonable response time
         const searchRequest = {
@@ -1217,37 +1297,9 @@ async function searchDiscs(formData) {
             filters: {}
         };
         
-        // Add filters if they have values - but exclude mold-specific filters that were just reset
-        const filterFields = [
-            'brand', 'mold', 'plastic_type', 'plastic_color', 'rim_color', 'stamp_foil',
-            'weight_min', 'weight_max', 'scaled_weight_min', 'scaled_weight_max',
-            'flatness_min', 'flatness_max', 'stiffness_min', 'stiffness_max',
-            'price_min', 'price_max'
-        ];
-        
-        // Get fresh form data after reset
-        const freshFormData = new FormData(document.getElementById('searchForm'));
-        
-        filterFields.forEach(field => {
-            // Skip mold-specific filters that should be reset
-            if (field === 'brand' || field === 'mold' || field === 'plastic_type') {
-                return;
-            }
-            
-            const value = freshFormData.get(field);
-            if (value && value.trim() !== '') {
-                if (field.includes('_min') || field.includes('_max') || field.includes('price')) {
-                    searchRequest.filters[field] = parseFloat(value);
-                } else {
-                    searchRequest.filters[field] = value.trim();
-                }
-            }
-        });
-        
-        // Remove empty filters object if no filters were added
-        if (Object.keys(searchRequest.filters).length === 0) {
-            delete searchRequest.filters;
-        }
+        // Since we reset all filters, we don't include any filters in the search request
+        // All filtering will be done client-side after the search results are returned
+        delete searchRequest.filters;
         
         
         // Make API request with extended timeout for detailed scraping
@@ -1402,7 +1454,7 @@ function createDiscCard(disc) {
     // Create image element with fallback
     const imageHtml = disc.image_url ? 
         `<div class="card-image-container mb-3">
-            <img src="${disc.image_url}" alt="${disc.mold} - ${disc.plastic_type}" class="w-full h-32 object-contain rounded bg-gray-50 disc-image" onerror="this.style.display='none'">
+            <img src="${disc.image_url}" alt="${disc.mold} - ${disc.plastic_type}" class="w-full h-32 object-contain rounded bg-gray-50 disc-image cursor-pointer hover:opacity-80 transition-opacity" onclick="showImageModal('${disc.image_url}', '${disc.mold} - ${disc.plastic_type}')" onerror="this.style.display='none'">
         </div>` :
         `<div class="w-full h-32 bg-gray-100 rounded mb-3 flex items-center justify-center text-gray-400 text-sm">No Image</div>`;
     
@@ -1500,7 +1552,7 @@ function createTableRow(disc) {
     // Create image element with fallback
     const imageHtml = disc.image_url ? 
         `<div class="table-image-container">
-            <img src="${disc.image_url}" alt="${disc.mold} - ${disc.plastic_type}" class="w-12 h-12 object-contain rounded bg-gray-50 disc-image" onerror="this.style.display='none'">
+            <img src="${disc.image_url}" alt="${disc.mold} - ${disc.plastic_type}" class="w-12 h-12 object-contain rounded bg-gray-50 disc-image cursor-pointer hover:opacity-80 transition-opacity" onclick="showImageModal('${disc.image_url}', '${disc.mold} - ${disc.plastic_type}')" onerror="this.style.display='none'">
         </div>` :
         `<div class="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-xs">No Image</div>`;
     
@@ -1547,6 +1599,52 @@ function switchView(viewType) {
         cardViewBtn.classList.remove('active');
         tableViewBtn.classList.add('active');
         localStorage.setItem('discViewPreference', 'table');
+    }
+}
+
+// Image expansion modal functions
+function showImageModal(imageUrl, altText) {
+    // Create modal overlay
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 cursor-pointer';
+    modal.id = 'imageModal';
+    
+    modal.innerHTML = `
+        <div class="relative max-w-4xl max-h-[90vh] p-4">
+            <img src="${imageUrl}" alt="${altText}" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl">
+            <button onclick="closeImageModal()" class="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-75 transition-all">
+                <span class="text-xl">&times;</span>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Close modal when clicking outside the image
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeImageModal();
+        }
+    });
+    
+    // Close modal with ESC key
+    const escapeHandler = function(e) {
+        if (e.key === 'Escape') {
+            closeImageModal();
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+    
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    if (modal) {
+        modal.remove();
+        document.body.style.overflow = 'auto';
     }
 }
 
@@ -1648,12 +1746,12 @@ document.addEventListener('DOMContentLoaded', function() {
             switchView('table');
         });
         
-        // Load saved view preference or default to cards
+        // Load saved view preference or default to table
         const savedView = localStorage.getItem('discViewPreference');
-        if (savedView === 'table') {
-            switchView('table');
+        if (savedView === 'cards') {
+            switchView('cards');
         } else {
-            switchView('cards'); // Default to cards view
+            switchView('table'); // Default to table view
         }
     }
     
@@ -1710,9 +1808,176 @@ function setupFilterEventListeners() {
     filterInputs.forEach(input => {
         input.addEventListener('change', updateFilters);
         input.addEventListener('blur', validateRangeInputs);
+        
+        // Special handling for price inputs
+        if (input.name === 'price_min' || input.name === 'price_max') {
+            input.addEventListener('input', function() {
+                // Ensure integer values and prevent negative numbers
+                const value = Math.max(0, Math.round(parseFloat(this.value) || 0));
+                if (this.value !== value.toString()) {
+                    this.value = value;
+                }
+                updatePriceInputState(this);
+            });
+            
+            // Handle arrow button clicks and focus for price inputs
+            input.addEventListener('focus', function() {
+                // If input is empty, set it to the current range value
+                if (!this.value) {
+                    const priceValues = allDiscs.map(d => parseFloat(d.price)).filter(v => !isNaN(v));
+                    if (priceValues.length > 0) {
+                        if (this.name === 'price_min') {
+                            this.value = Math.floor(Math.min(...priceValues));
+                        } else if (this.name === 'price_max') {
+                            this.value = Math.ceil(Math.max(...priceValues));
+                        }
+                    }
+                }
+                updatePriceInputState(this);
+            });
+            
+            // Handle step up/down events (arrow button clicks)
+            input.addEventListener('change', function() {
+                // For price_max, if the value is 0 or empty, set it to the appropriate range value
+                if (this.name === 'price_max' && (this.value === '0' || this.value === '')) {
+                    const priceValues = allDiscs.map(d => parseFloat(d.price)).filter(v => !isNaN(v));
+                    if (priceValues.length > 0) {
+                        this.value = Math.ceil(Math.max(...priceValues));
+                    }
+                }
+                // For price_min, allow 0 and don't override it
+                updatePriceInputState(this);
+            });
+            
+            // Prevent down arrow from working when minimum price is at 0
+            if (input.name === 'price_min') {
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'ArrowDown' && this.value === '0') {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            }
+        }
+        
+        // Special handling for weight inputs
+        if (input.name === 'weight_min' || input.name === 'weight_max') {
+            input.addEventListener('input', function() {
+                // Ensure integer values and prevent negative numbers
+                const value = Math.max(0, Math.round(parseFloat(this.value) || 0));
+                if (this.value !== value.toString()) {
+                    this.value = value;
+                }
+                updateWeightInputState(this);
+            });
+            
+            // Handle arrow button clicks and focus for weight inputs
+            input.addEventListener('focus', function() {
+                // If input is empty, set it to the current range value
+                if (!this.value) {
+                    const weightValues = allDiscs.map(d => d.weight).filter(v => v !== null && v !== undefined);
+                    if (weightValues.length > 0) {
+                        if (this.name === 'weight_min') {
+                            this.value = Math.floor(Math.min(...weightValues));
+                        } else if (this.name === 'weight_max') {
+                            this.value = Math.ceil(Math.max(...weightValues));
+                        }
+                    }
+                }
+                updateWeightInputState(this);
+            });
+            
+            // Handle step up/down events (arrow button clicks)
+            input.addEventListener('change', function() {
+                // For weight_max, if the value is 0 or empty, set it to the appropriate range value
+                if (this.name === 'weight_max' && (this.value === '0' || this.value === '')) {
+                    const weightValues = allDiscs.map(d => d.weight).filter(v => v !== null && v !== undefined);
+                    if (weightValues.length > 0) {
+                        this.value = Math.ceil(Math.max(...weightValues));
+                    }
+                }
+                // For weight_min, allow 0 and don't override it
+                updateWeightInputState(this);
+            });
+            
+            // Prevent down arrow from working when minimum weight is at 0
+            if (input.name === 'weight_min') {
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'ArrowDown' && this.value === '0') {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            }
+        }
+        
+        // Special handling for flatness and stiffness inputs
+        if (input.name === 'flatness_min' || input.name === 'flatness_max' || 
+            input.name === 'stiffness_min' || input.name === 'stiffness_max') {
+            input.addEventListener('input', function() {
+                // Ensure integer values and prevent negative numbers, clamp between 1-10
+                const value = Math.max(1, Math.min(10, Math.round(parseFloat(this.value) || 1)));
+                if (this.value !== value.toString()) {
+                    this.value = value;
+                }
+            });
+            
+            // Handle arrow button clicks and focus for flatness/stiffness inputs
+            input.addEventListener('focus', function() {
+                // If input is empty, set it to the default range value (1-10)
+                if (!this.value) {
+                    if (this.name === 'flatness_min' || this.name === 'stiffness_min') {
+                        this.value = 1;
+                    } else if (this.name === 'flatness_max' || this.name === 'stiffness_max') {
+                        this.value = 10;
+                    }
+                }
+            });
+            
+            // Handle step up/down events (arrow button clicks)
+            input.addEventListener('change', function() {
+                // Ensure values stay within 1-10 range
+                const value = Math.max(1, Math.min(10, Math.round(parseFloat(this.value) || 1)));
+                this.value = value;
+            });
+            
+            // Prevent down arrow from working when minimum is at 1
+            if (input.name === 'flatness_min' || input.name === 'stiffness_min') {
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'ArrowDown' && this.value === '1') {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            }
+        }
     });
     
     console.log(`🔧 Set up event listeners for ${filterInputs.length} number inputs`);
+}
+
+// Function to update price input state (track when minimum is at 0)
+function updatePriceInputState(input) {
+    if (input.name === 'price_min') {
+        // For minimum price, add class when value is 0 for styling purposes
+        if (input.value === '0') {
+            input.classList.add('price-min-at-zero');
+        } else {
+            input.classList.remove('price-min-at-zero');
+        }
+    }
+}
+
+// Function to update weight input state (track when minimum is at 0)
+function updateWeightInputState(input) {
+    if (input.name === 'weight_min') {
+        // For minimum weight, add class when value is 0 for styling purposes
+        if (input.value === '0') {
+            input.classList.add('weight-min-at-zero');
+        } else {
+            input.classList.remove('weight-min-at-zero');
+        }
+    }
 }
 
 // Function to validate range inputs and prevent invalid ranges
@@ -1727,6 +1992,19 @@ function validateRangeInputs() {
     rangePairs.forEach(pair => {
         const minInput = document.querySelector(`input[name="${pair.min}"]`);
         const maxInput = document.querySelector(`input[name="${pair.max}"]`);
+        
+        // Special handling for price inputs
+        if (pair.min === 'price_min' || pair.max === 'price_max') {
+            // Ensure price values are non-negative and integers
+            if (minInput && minInput.value) {
+                const minVal = Math.max(0, Math.round(parseFloat(minInput.value)));
+                minInput.value = minVal;
+            }
+            if (maxInput && maxInput.value) {
+                const maxVal = Math.max(0, Math.round(parseFloat(maxInput.value)));
+                maxInput.value = maxVal;
+            }
+        }
         
         if (minInput && maxInput && minInput.value && maxInput.value) {
             const minVal = parseFloat(minInput.value);
@@ -1773,30 +2051,34 @@ function clearAllFilters() {
         input.value = '';
     });
     
-    // Reset dropdowns to "All" option
+    // Reset dropdowns to "All" option (uncheck all individual options)
     dropdowns.forEach(dropdown => {
-        const allCheckbox = dropdown.querySelector('input[name$="_all"]');
-        const otherCheckboxes = dropdown.querySelectorAll('input:not([name$="_all"])');
+        const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
         
-        if (allCheckbox) {
-            allCheckbox.checked = true;
-        }
-        
-        otherCheckboxes.forEach(checkbox => {
+        checkboxes.forEach(checkbox => {
             checkbox.checked = false;
         });
     });
     
     // Reset range sliders to default values
+    const weightSliderMin = document.querySelector('input[name="weight_slider_min"]');
+    const weightSliderMax = document.querySelector('input[name="weight_slider_max"]');
     const flatnessSliderMin = document.querySelector('input[name="flatness_slider_min"]');
     const flatnessSliderMax = document.querySelector('input[name="flatness_slider_max"]');
     const stiffnessSliderMin = document.querySelector('input[name="stiffness_slider_min"]');
     const stiffnessSliderMax = document.querySelector('input[name="stiffness_slider_max"]');
+    const priceSliderMin = document.querySelector('input[name="price_slider_min"]');
+    const priceSliderMax = document.querySelector('input[name="price_slider_max"]');
     
+    // Reset to default ranges (will be updated when data is available)
+    if (weightSliderMin) weightSliderMin.value = 0;
+    if (weightSliderMax) weightSliderMax.value = 200;
     if (flatnessSliderMin) flatnessSliderMin.value = 1;
     if (flatnessSliderMax) flatnessSliderMax.value = 10;
     if (stiffnessSliderMin) stiffnessSliderMin.value = 1;
     if (stiffnessSliderMax) stiffnessSliderMax.value = 10;
+    if (priceSliderMin) priceSliderMin.value = 0;
+    if (priceSliderMax) priceSliderMax.value = 50;
     
     // Update slider ranges
     setupDualRangeSliders();
@@ -1839,11 +2121,10 @@ function exportFilteredResults() {
     }
     
     // Create CSV content
-    const headers = ['Brand', 'Mold', 'Plastic Type', 'Color', 'Weight', 'Flatness', 'Stiffness', 'Price', 'Stock', 'URL'];
+    const headers = ['Mold', 'Plastic Type', 'Color', 'Weight', 'Flatness', 'Stiffness', 'Price', 'Stock', 'URL'];
     const csvContent = [
         headers.join(','),
         ...filteredDiscs.map(disc => [
-            disc.brand || '',
             disc.mold || '',
             disc.plastic_type || '',
             disc.plastic_color || '',

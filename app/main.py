@@ -94,7 +94,6 @@ async def search_discs_get(
     product_name: str,
     max_results: Optional[int] = 50,
     # Filter parameters
-    brand: Optional[str] = None,
     mold: Optional[str] = None,
     plastic_type: Optional[str] = None,
     plastic_color: Optional[str] = None,
@@ -119,7 +118,6 @@ async def search_discs_get(
     
     # Build filters from query parameters
     filters = DiscFilter(
-        brand=brand,
         mold=mold,
         plastic_type=plastic_type,
         plastic_color=plastic_color,
@@ -186,33 +184,6 @@ async def test_specific_url(url_request: dict):
         logger.error(f"Error during URL test: {e}")
         raise HTTPException(status_code=500, detail=f"URL test failed: {str(e)}")
 
-@app.get("/api/brand-plastics")
-async def get_brand_plastics():
-    """Get current brand/plastic relationships from database"""
-    try:
-        brand_plastics = db.get_brand_plastics_map()
-        return {
-            "brand_plastics": brand_plastics,
-            "total_brands": len(brand_plastics),
-            "total_plastics": sum(len(plastics) for plastics in brand_plastics.values())
-        }
-    except Exception as e:
-        logger.error(f"Error getting brand plastics: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get brand plastics: {str(e)}")
-
-@app.get("/api/brand-plastics/{brand_name}")
-async def get_plastics_for_brand(brand_name: str):
-    """Get all plastics for a specific brand"""
-    try:
-        plastics = db.get_plastics_for_brand(brand_name)
-        return {
-            "brand": brand_name,
-            "plastics": plastics,
-            "count": len(plastics)
-        }
-    except Exception as e:
-        logger.error(f"Error getting plastics for brand {brand_name}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get plastics for brand: {str(e)}")
 
 @app.on_event("shutdown")
 async def shutdown_event():

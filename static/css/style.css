@@ -188,9 +188,37 @@ body {
 .range-fill {
     position: absolute;
     top: 0;
+    left: 0;
+    width: 100%;
     height: 100%;
     background: #3b82f6;
     border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Grey overlay for excluded left area */
+.range-fill::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--excluded-left, 0%);
+    height: 100%;
+    background: #e5e7eb;
+    border-radius: 4px 0 0 4px;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Grey overlay for excluded right area */
+.range-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: var(--excluded-right, 0%);
+    height: 100%;
+    background: #e5e7eb;
+    border-radius: 0 4px 4px 0;
     transition: all 0.2s ease-in-out;
 }
 
@@ -289,6 +317,16 @@ body {
 #filtersSection input[type="number"]:focus {
     border-color: #3b82f6;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Price input styling when minimum is at 0 - keep arrows visible but prevent down arrow functionality */
+#filtersSection input.price-min-at-zero {
+    /* Keep default appearance to show arrows */
+}
+
+/* Weight input styling when minimum is at 0 - keep arrows visible but prevent down arrow functionality */
+#filtersSection input.weight-min-at-zero {
+    /* Keep default appearance to show arrows */
 }
 
 /* Select element styles */
@@ -437,9 +475,26 @@ body {
 }
 
 .dropdown-header {
-    padding: 0.75rem;
+    padding: 0.5rem;
     border-bottom: 1px solid #e5e7eb;
     background: #f9fafb;
+}
+
+/* Deselect All button styles */
+.deselect-all-btn {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.deselect-all-btn:hover {
+    background-color: #f3f4f6;
+    color: #374151;
 }
 
 .dropdown-header .checkbox-item {
@@ -466,25 +521,34 @@ body {
     font-weight: 500;
 }
 
-/* Disabled checkbox item styles */
-.dropdown-options .checkbox-item.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background-color: #f9fafb;
+/* Filtered checkbox item styles - visually distinct but still clickable */
+.dropdown-options .checkbox-item.filtered {
+    opacity: 0.7;
+    background-color: #fef3c7; /* Light yellow background to indicate filtered */
+    border-left: 3px solid #f59e0b; /* Orange left border */
 }
 
-.dropdown-options .checkbox-item.disabled:hover {
-    background-color: #f9fafb;
+.dropdown-options .checkbox-item.filtered:hover {
+    background-color: #fde68a; /* Slightly darker yellow on hover */
+    opacity: 0.9;
 }
 
-.dropdown-options .checkbox-item.disabled input[type="checkbox"] {
-    cursor: not-allowed;
-    opacity: 0.5;
+.dropdown-options .checkbox-item.filtered input[type="checkbox"] {
+    opacity: 0.8;
 }
 
-.dropdown-options .checkbox-item.disabled .disabled-text {
-    color: #9ca3af;
+.dropdown-options .checkbox-item.filtered .filtered-text {
+    color: #92400e; /* Darker text for better contrast */
     font-style: italic;
+    position: relative;
+}
+
+/* Add a small indicator for filtered items */
+.dropdown-options .checkbox-item.filtered .filtered-text::after {
+    content: " (filtered)";
+    font-size: 0.75em;
+    color: #d97706;
+    font-style: normal;
 }
 
 /* Scrollbar styling for dropdown menus */
@@ -626,6 +690,47 @@ body div#cartPanel.open {
     }
 }
 
+/* Image Modal Styles */
+#imageModal {
+    backdrop-filter: blur(4px);
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+#imageModal img {
+    animation: imageZoomIn 0.3s ease-out;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes imageZoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Enhanced disc image hover effects */
+.disc-image {
+    transition: all 0.2s ease-in-out;
+}
+
+.disc-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 /* Responsive cart panel */
 @media (max-width: 640px) {
     #cartPanel {
@@ -637,5 +742,17 @@ body div#cartPanel.open {
     #floatingCart {
         bottom: 4px;
         right: 4px;
+    }
+    
+    /* Mobile image modal adjustments */
+    #imageModal .relative {
+        max-width: calc(100vw - 2rem);
+        max-height: calc(100vh - 2rem);
+        padding: 1rem;
+    }
+    
+    #imageModal img {
+        max-width: 100%;
+        max-height: calc(100vh - 4rem);
     }
 }

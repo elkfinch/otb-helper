@@ -53,8 +53,6 @@ class DiscFilterService:
         """
         
         # Text filters (exact match or list)
-        if not DiscFilterService._check_text_filter(disc.brand, filters.brand):
-            return False
         if not DiscFilterService._check_text_filter(disc.mold, filters.mold):
             return False
         if not DiscFilterService._check_text_filter(disc.plastic_type, filters.plastic_type):
