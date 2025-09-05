@@ -762,6 +762,43 @@ function debouncedFilterUpdate() {
     filterUpdateTimeout = setTimeout(updateFilters, 300); // 300ms delay
 }
 
+// Function to reset mold-specific filters when searching for a new mold
+function resetMoldSpecificFilters() {
+    console.log('🔄 Resetting mold-specific filters for new search');
+    
+    // Always remove mold-specific filters from currentFilters object first
+    delete currentFilters.mold;
+    delete currentFilters.plastic_type;
+    delete currentFilters.brand;
+    
+    // Try to reset UI elements if they exist
+    const fieldsToReset = ['mold', 'plastic_type', 'brand'];
+    
+    fieldsToReset.forEach(fieldName => {
+        const optionsContainer = document.querySelector(`#${getOptionsContainerId(fieldName)}`);
+        if (optionsContainer) {
+            const dropdown = optionsContainer.closest('.dropdown-checklist');
+            if (dropdown) {
+                const allCheckbox = dropdown.querySelector(`input[name="${fieldName}_all"]`);
+                const checkboxes = dropdown.querySelectorAll(`input[name="${fieldName}"]:not([name$="_all"])`);
+                
+                if (allCheckbox) {
+                    allCheckbox.checked = true;
+                    console.log(`✅ Reset ${fieldName} filter to "All"`);
+                }
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                updateDropdownText(fieldName);
+            }
+        } else {
+            console.log(`⚠️ ${fieldName} dropdown not found (this is normal for first search)`);
+        }
+    });
+    
+    console.log('✅ Mold-specific filters reset successfully. Current filters:', currentFilters);
+}
+
 // Disc search functionality
 async function searchDiscs(formData) {
     const loadingIndicator = document.getElementById('loadingIndicator');
@@ -774,6 +811,10 @@ async function searchDiscs(formData) {
         loadingIndicator.classList.remove('hidden');
         searchResults.classList.add('hidden');
         
+        // Reset mold-specific filters when searching for a new mold
+        // This needs to happen after UI is ready but before building search request
+        resetMoldSpecificFilters();
+        
         // Build search request - limit to 3 product pages for reasonable response time
         const searchRequest = {
             product_name: formData.get('productName'),
@@ -781,7 +822,7 @@ async function searchDiscs(formData) {
             filters: {}
         };
         
-        // Add filters if they have values
+        // Add filters if they have values - but exclude mold-specific filters that were just reset
         const filterFields = [
             'brand', 'mold', 'plastic_type', 'plastic_color', 'rim_color', 'stamp_foil',
             'weight_min', 'weight_max', 'scaled_weight_min', 'scaled_weight_max',
@@ -789,8 +830,16 @@ async function searchDiscs(formData) {
             'price_min', 'price_max'
         ];
         
+        // Get fresh form data after reset
+        const freshFormData = new FormData(document.getElementById('searchForm'));
+        
         filterFields.forEach(field => {
-            const value = formData.get(field);
+            // Skip mold-specific filters that should be reset
+            if (field === 'brand' || field === 'mold' || field === 'plastic_type') {
+                return;
+            }
+            
+            const value = freshFormData.get(field);
             if (value && value.trim() !== '') {
                 if (field.includes('_min') || field.includes('_max') || field.includes('price')) {
                     searchRequest.filters[field] = parseFloat(value);
@@ -804,6 +853,7 @@ async function searchDiscs(formData) {
         if (Object.keys(searchRequest.filters).length === 0) {
             delete searchRequest.filters;
         }
+        
         
         // Make API request with extended timeout for detailed scraping
         const controller = new AbortController();

@@ -10,9 +10,10 @@ import logging
 from .models import SearchRequest, SearchResponse, DiscFilter, Disc
 from .scraper import OTBDiscsScraper
 from .filters import DiscFilterService
+from .database import db
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
@@ -184,6 +185,34 @@ async def test_specific_url(url_request: dict):
     except Exception as e:
         logger.error(f"Error during URL test: {e}")
         raise HTTPException(status_code=500, detail=f"URL test failed: {str(e)}")
+
+@app.get("/api/brand-plastics")
+async def get_brand_plastics():
+    """Get current brand/plastic relationships from database"""
+    try:
+        brand_plastics = db.get_brand_plastics_map()
+        return {
+            "brand_plastics": brand_plastics,
+            "total_brands": len(brand_plastics),
+            "total_plastics": sum(len(plastics) for plastics in brand_plastics.values())
+        }
+    except Exception as e:
+        logger.error(f"Error getting brand plastics: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get brand plastics: {str(e)}")
+
+@app.get("/api/brand-plastics/{brand_name}")
+async def get_plastics_for_brand(brand_name: str):
+    """Get all plastics for a specific brand"""
+    try:
+        plastics = db.get_plastics_for_brand(brand_name)
+        return {
+            "brand": brand_name,
+            "plastics": plastics,
+            "count": len(plastics)
+        }
+    except Exception as e:
+        logger.error(f"Error getting plastics for brand {brand_name}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get plastics for brand: {str(e)}")
 
 @app.on_event("shutdown")
 async def shutdown_event():

@@ -10,6 +10,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .models import Disc, StockStatus
+from .database import db
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +58,13 @@ class OTBDiscsScraper:
             # First pass: filter relevant products
             for product in products:
                 disc = self._parse_product(product)
-                if disc and self._is_relevant_match(disc.mold, product_name):
-                    relevant_products.append(disc)
+                if disc:
+                    logger.debug(f"🔍 Parsed product: brand='{disc.brand}', mold='{disc.mold}', plastic='{disc.plastic_type}'")
+                    if self._is_relevant_match(disc.mold, product_name):
+                        logger.debug(f"✅ Relevant match found: '{disc.mold}' matches '{product_name}'")
+                        relevant_products.append(disc)
+                    else:
+                        logger.debug(f"❌ Not relevant: '{disc.mold}' doesn't match '{product_name}'")
             
             logger.info(f"Found {len(relevant_products)} relevant product pages (filtered from {len(products)} total results)")
             
@@ -388,7 +394,7 @@ class OTBDiscsScraper:
     
     def _parse_product_name(self, name: str) -> tuple:
         """
-        Parse product name to extract brand, mold, and plastic type
+        Parse product name to extract brand, mold, and plastic type using database-driven approach
         
         Args:
             name: Product name string (e.g., "Proton Insanity")
@@ -396,22 +402,7 @@ class OTBDiscsScraper:
         Returns:
             Tuple of (brand, mold, plastic_type)
         """
-        # Common disc golf brands and their associated plastics
-        brand_plastics = {
-            'Innova': ['Champion', 'Star', 'DX', 'Pro', 'XT', 'Metal Flake', 'Glow', 'Halo Star'],
-            'Discraft': ['ESP', 'Z', 'Pro-D', 'Big Z', 'Titanium', 'Glo Z', 'Cryztal', 'Swirl ESP'],
-            'MVP': ['Neutron', 'Proton', 'Plasma', 'Fission', 'Eclipse'],
-            'Axiom': ['Neutron', 'Proton', 'Plasma', 'Fission', 'Eclipse', 'Cosmic Neutron'],
-            'Streamline': ['Neutron', 'Proton', 'Plasma', 'Cosmic Neutron'],
-            'Dynamic Discs': ['Lucid', 'Fuzion', 'Prime', 'Classic', 'BioFuzion'],
-            'Latitude 64': ['Opto', 'Gold', 'Retro', 'Zero'],
-            'Westside': ['VIP', 'Tournament', 'Elasto'],
-            'Prodigy': ['400', '400G', '300', '500', '750'],
-            'Kastaplast': ['K1', 'K2', 'K3', 'Glow'],
-            'Gateway': ['Diamond', 'Platinum', 'Sure Grip', 'Evolution'],
-            'DGA': ['SP Line', 'Proline', 'Signature'],
-            'Millennium': ['Standard', 'Quantum', 'Sirius']
-        }
+        logger.debug(f"🔍 Parsing product name: '{name}'")
         
         name_lower = name.lower()
         
@@ -420,40 +411,84 @@ class OTBDiscsScraper:
         plastic_type = "Unknown"
         mold = "Unknown"
         
+        # Get brand/plastics mapping from database
+        brand_plastics = db.get_brand_plastics_map()
+        
         # First, try to identify by plastic type (which often indicates brand)
+        logger.debug(f"🔍 Checking for plastic types in '{name_lower}'")
+        
+        # Sort plastics by length (longest first) to prioritize more specific matches
+        all_plastics = []
         for brand_name, plastics in brand_plastics.items():
             for plastic in plastics:
-                if plastic.lower() in name_lower:
-                    brand = brand_name
-                    plastic_type = plastic
-                    # Remove both brand and plastic from name to get mold
-                    remaining = name.replace(brand_name, '').replace(plastic, '').strip()
-                    if remaining:
-                        mold = remaining
-                    return brand, mold, plastic_type
+                all_plastics.append((brand_name, plastic, len(plastic)))
         
+        # Sort by length descending to get longest matches first
+        all_plastics.sort(key=lambda x: x[2], reverse=True)
+        
+        for brand_name, plastic, _ in all_plastics:
+            # Use word boundary matching to avoid partial matches
+            plastic_lower = plastic.lower()
+            # Create a pattern that matches the plastic as a complete word
+            pattern = r'\b' + re.escape(plastic_lower) + r'\b'
+            if re.search(pattern, name_lower):
+                logger.debug(f"✅ Found plastic '{plastic}' for brand '{brand_name}' in '{name}'")
+                brand = brand_name
+                plastic_type = plastic
+                # Remove both brand and plastic from name to get mold
+                remaining = name.replace(brand_name, '').replace(plastic, '').strip()
+                logger.debug(f"🔍 After removing brand '{brand_name}' and plastic '{plastic}': '{remaining}'")
+                if remaining:
+                    mold = remaining
+                logger.debug(f"📋 Result: brand='{brand}', mold='{mold}', plastic='{plastic_type}'")
+                
+                # Learn this relationship to improve future parsing
+                db.learn_brand_plastic_relationship(brand, plastic_type, 0.1)
+                
+                return brand, mold, plastic_type
+        
+        logger.debug(f"🔍 No plastic type found, checking for brand directly in '{name_lower}'")
         # If no plastic found, try to identify brand directly
-        for brand_name in brand_plastics.keys():
+        all_brands = db.get_all_brands()
+        for brand_name in all_brands:
             if brand_name.lower() in name_lower:
+                logger.debug(f"✅ Found brand '{brand_name}' in '{name}'")
                 brand = brand_name
                 # Remove brand from name for further processing
                 name = name.replace(brand_name, '').strip()
+                logger.debug(f"🔍 After removing brand '{brand_name}': '{name}'")
                 break
         
         # Extract mold (usually the last significant word)
         name_parts = [part for part in name.split() if part.lower() not in ['disc', 'golf']]
+        logger.debug(f"🔍 Name parts after filtering: {name_parts}")
         if name_parts:
             if plastic_type == "Unknown" and brand == "Unknown" and len(name_parts) >= 3:
                 # Format: {Brand} {Plastic} {Mold}
                 brand = name_parts[0]
                 plastic_type = name_parts[1]
                 mold = ' '.join(name_parts[2:])
+                logger.debug(f"📋 Format: Brand Plastic Mold -> brand='{brand}', plastic='{plastic_type}', mold='{mold}'")
+                
+                # Learn this relationship
+                db.learn_brand_plastic_relationship(brand, plastic_type, 0.05)
+                
             elif plastic_type == "Unknown" and len(name_parts) > 1:
                 plastic_type = name_parts[0]
                 mold = ' '.join(name_parts[1:])
+                logger.debug(f"📋 Format: Plastic Mold -> plastic='{plastic_type}', mold='{mold}'")
+                
+                # Try to learn the brand for this plastic
+                learned_brand = db.get_brand_for_plastic(plastic_type)
+                if learned_brand:
+                    brand = learned_brand
+                    db.learn_brand_plastic_relationship(brand, plastic_type, 0.05)
+                
             else:
                 mold = name_parts[-1]
+                logger.debug(f"📋 Format: Last word -> mold='{mold}'")
         
+        logger.debug(f"📋 Final result: brand='{brand}', mold='{mold}', plastic='{plastic_type}'")
         return brand, mold, plastic_type
     
     def _is_relevant_match(self, mold_name: str, search_term: str) -> bool:
@@ -629,6 +664,21 @@ class OTBDiscsScraper:
         print(f"Total: {len(discs)} discs found")
         print()
 
+    def learn_from_successful_parse(self, product_name: str, brand: str, plastic_type: str, mold: str):
+        """
+        Learn from a successfully parsed product to improve future parsing
+        
+        Args:
+            product_name: Original product name
+            brand: Parsed brand
+            plastic_type: Parsed plastic type
+            mold: Parsed mold
+        """
+        if brand != "Unknown" and plastic_type != "Unknown":
+            # Boost confidence for this brand/plastic combination
+            db.learn_brand_plastic_relationship(brand, plastic_type, 0.2)
+            logger.debug(f"📚 Learned from successful parse: {brand} + {plastic_type}")
+    
     def close(self):
         """Close the session"""
         self.session.close()
