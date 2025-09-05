@@ -55,6 +55,9 @@ function removeFromCart(discId) {
     cart = cart.filter(item => item.id !== discId);
     saveCart();
     showNotification('Item removed from cart', 'info');
+    
+    // Keep the cart panel open even if it becomes empty
+    // The panel should only close when user explicitly closes it or clicks outside
 }
 
 function clearCart() {
@@ -133,7 +136,7 @@ function updateCartDisplay() {
                         <div class="text-xs text-gray-500">${item.plastic_color || 'N/A'} • ${item.weight ? item.weight + 'g' : 'N/A'}</div>
                         <div class="text-sm font-semibold text-green-600">$${item.price || 'N/A'}</div>
                     </div>
-                    <button onclick="removeFromCart('${item.id}')" class="text-red-500 hover:text-red-700 text-sm">
+                    <button onclick="removeFromCart('${item.id}'); event.stopPropagation();" class="text-red-500 hover:text-red-700 text-sm">
                         ✕
                     </button>
                 </div>
@@ -1775,12 +1778,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add hover effects
         floatingCartBtn.addEventListener('mouseenter', function() {
-            this.style.backgroundColor = '#ff6600';
+            this.style.backgroundColor = '#1d4ed8';
             this.style.transform = 'scale(1.1)';
         });
         
         floatingCartBtn.addEventListener('mouseleave', function() {
-            this.style.backgroundColor = '#ff0000';
+            this.style.backgroundColor = '#2563eb';
             this.style.transform = 'scale(1)';
         });
     } else {
@@ -1793,6 +1796,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const floatingCartBtn = document.getElementById('floatingCartBtn');
         
         if (cartPanel && cartPanel.style.right === '0px') {
+            // Don't close if clicking inside the cart panel or on the cart button
             if (!cartPanel.contains(e.target) && !floatingCartBtn.contains(e.target)) {
                 closeCartPanel();
             }

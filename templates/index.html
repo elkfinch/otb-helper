@@ -11,13 +11,13 @@
     <div class="container mx-auto px-4 py-8">
         <header class="text-center mb-12">
             <h1 class="text-4xl font-bold text-gray-800 mb-4">OTB Helper</h1>
-            <p class="text-xl text-gray-600">Find the perfect disc golf disc from OTB Discs</p>
+            <p class="text-xl text-gray-600">Find the perfect disc from OTB</p>
         </header>
         
         <main class="max-w-6xl mx-auto">
             <!-- Disc Search Section -->
             <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-6">🥏 Search Disc Golf Discs</h2>
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">🥏 Search Mold</h2>
                 
                 <form id="searchForm" class="space-y-6">
                     <div class="flex gap-4">
@@ -332,10 +332,14 @@
                     <ul class="space-y-2 text-gray-600">
                         <li>✅ Real-time disc search from OTB Discs</li>
                         <li>✅ Advanced filtering by weight, color, mold, and plastic type</li>
-                        <li>✅ Detailed disc specifications</li>
+                        <li>✅ Range sliders for weight, flatness, stiffness, and price</li>
+                        <li>✅ Detailed disc specifications with images</li>
                         <li>✅ Price and stock information</li>
-                        <li>✅ Add multiple discs to cart</li>
+                        <li>✅ Card and table view modes</li>
+                        <li>✅ Add multiple discs to persistent cart</li>
+                        <li>✅ Export search results to CSV</li>
                         <li>✅ Quick add process - opens each disc's product page automatically</li>
+                        <li>✅ API documentation and developer resources</li>
                     </ul>
                 </div>
             </div>
@@ -354,8 +358,9 @@
     <!-- Floating Cart Button -->
     <div id="floatingCart" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999;">
         <button id="floatingCartBtn" 
-                style="background-color: #2563eb; color: white; padding: 16px; border-radius: 50%; border: none; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4); cursor: pointer; font-size: 20px; transition: all 0.2s ease; position: relative;">
+                style="background-color: #2563eb; color: white; padding: 12px 16px; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4); cursor: pointer; font-size: 20px; transition: all 0.2s ease; position: relative; display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 24px;">🛒</span>
+            <span style="font-size: 14px; font-weight: 600;">Cart</span>
             <span id="floatingCartCount" style="background-color: #ef4444; color: white; font-size: 12px; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none; position: absolute; top: -4px; right: -4px; min-width: 18px; text-align: center;">0</span>
         </button>
         
